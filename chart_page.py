@@ -43,7 +43,7 @@ def render_chart_page():
     # --- Line Chart ---
     fig = px.line(
         chart_df,
-        x="Month",
+        x="Operation Date",
         y="Quantity[Unit1]",
         color="Rcv So Flag",
         markers=True,
