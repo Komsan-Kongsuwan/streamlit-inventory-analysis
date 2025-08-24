@@ -29,6 +29,7 @@ def generate_official_report(files):
             # ✅ Add Year/Month columns
             df["Year"] = df["Operation Date"].dt.year
             df["Month"] = df["Operation Date"].dt.month
+            df["Period"] = df["Year"]+df["Month"]
 
             df_list.append(df)
 
@@ -38,7 +39,7 @@ def generate_official_report(files):
 
         df_final = pd.concat(df_list, ignore_index=True)
         df_final['Quantity[Unit1]'] = pd.to_numeric(df_final['Quantity[Unit1]'], errors='coerce').fillna(0)
-
+        df_final['Quantity[Unit1]'] = df_final['Quantity[Unit1]'].abs()
         # --- pivot table ---
         pivot_df = pd.pivot_table(
             df_final,
@@ -63,7 +64,6 @@ def generate_official_report(files):
         )
         pivot_df = pivot_df.reindex(columns=final_columns)
 
-        df_final['Quantity[Unit1]'] = df_final['Quantity[Unit1]'].abs()
         return pivot_df, df_final
 
     except Exception as e:
