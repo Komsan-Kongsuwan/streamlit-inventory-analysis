@@ -1,13 +1,7 @@
-# streamlit_monthly
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import calendar
-from openpyxl import load_workbook
-from openpyxl.styles import Alignment
-from openpyxl.utils import get_column_letter
-import io
 
 st.set_page_config(page_title="Inventory Analysis (Admin)", layout="wide")
 st.title("💹 Inventory Analysis")
@@ -16,7 +10,7 @@ st.title("💹 Inventory Analysis")
 uploaded_files = st.file_uploader("📤 Upload .csv files", type="csv", accept_multiple_files=True)
 
 if not uploaded_files:
-    st.info("Please upload one or more monthly Excel files (e.g. 202401.csv).")
+    st.info("Please upload one or more monthly CSV files (e.g. 202401.csv).")
     st.stop()
 
 st.success("✅ Files uploaded. If you want to upload again, please move to another page and back to this page again to reset the uploaded files. Otherwise, uploaded files will be duplicated!")
@@ -30,21 +24,23 @@ def generate_official_report(files):
             progress_bar.progress(int((i + 1) / len(files) * 100))
             filename = file.name
 
-            # Read Excel with only specific columns
-            df = pd.read_excel(
+            # ✅ Read CSV (tab-separated, not Excel)
+            df = pd.read_csv(
                 file,
-                skiprows=2,          # skip first 2 rows if headers are on 3rd row
-                nrows=49,            # limit rows if needed
+                sep="\t",       # tab-delimited
                 usecols=[
                     "Operation Date", "Rcv So Flag", "Owner Code", "Owner Name",
                     "Item Code", "Item Name", "Quantity[Unit1]", "UOM1",
                     "Inventory Qty", "Delivery Destination Code", "Delivery Destination Name"
                 ]
             )
-            year = df['Operation Date'].dt.year
-            month = df['Operation Date'].dt.month
-            df["Year"] = year
-            df["Month"] = month
+
+            # ✅ Convert Operation Date to datetime
+            df["Operation Date"] = pd.to_datetime(df["Operation Date"], errors="coerce", dayfirst=True)
+
+            # ✅ Add Year/Month columns
+            df["Year"] = df["Operation Date"].dt.year
+            df["Month"] = df["Operation Date"].dt.month
 
             df_list.append(df)
 
@@ -53,7 +49,6 @@ def generate_official_report(files):
             return pd.DataFrame(), pd.DataFrame()
 
         df_final = pd.concat(df_list, ignore_index=True)
-        st.dataframe(df_final)
         df_final['Quantity[Unit1]'] = pd.to_numeric(df_final['Quantity[Unit1]'], errors='coerce').fillna(0)
 
         # --- pivot table ---
@@ -69,8 +64,8 @@ def generate_official_report(files):
         pivot_df['Grand Total'] = pivot_df.sum(axis=1)
         pivot_df = pivot_df.reset_index()
 
-        # Rename month columns from 01..12 to Jan..Dec
-        month_map = {f"{i:02d}": calendar.month_abbr[i] for i in range(1, 13)}
+        # Rename month columns 1..12 → Jan..Dec
+        month_map = {i: calendar.month_abbr[i] for i in range(1, 13)}
         pivot_df = pivot_df.rename(columns=month_map)
 
         final_columns = (
