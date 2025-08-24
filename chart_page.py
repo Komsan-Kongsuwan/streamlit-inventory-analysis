@@ -18,23 +18,28 @@ def render_chart_page():
     items = st.sidebar.multiselect("Item Code", df_raw["Item Code"].unique())
 
     df_filtered = df_raw.copy()
+    
     if years:
         df_filtered = df_filtered[df_filtered["Year"].isin(years)]
     if items:
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
-
+    
+    # --- Keep only Rcv(increase) ---
+    df_filtered = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]
+    
     if df_filtered.empty:
         st.warning("⚠️ No data after filtering.")
         return
-
+    
     # --- Take absolute values for Quantity[Unit1] ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
-
-    # --- Aggregate by Operation Date + Rcv So Flag ---
+    
+    # --- Aggregate by Period ---
     chart_df = (
-        df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"]
+        df_filtered.groupby(["Period"], as_index=False)["Quantity[Unit1]"]
         .sum()
     )
+
     st.dataframe(chart_df)
     # --- Line Chart ---
     fig = px.line(
