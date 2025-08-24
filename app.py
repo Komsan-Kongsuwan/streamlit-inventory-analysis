@@ -13,10 +13,10 @@ st.set_page_config(page_title="Inventory Analysis (Admin)", layout="wide")
 st.title("💹 Inventory Analysis")
 
 # ✅ Uploader
-uploaded_files = st.file_uploader("📤 Upload .xlsx files", type="xlsx", accept_multiple_files=True)
+uploaded_files = st.file_uploader("📤 Upload .csv files", type="csv", accept_multiple_files=True)
 
 if not uploaded_files:
-    st.info("Please upload one or more monthly Excel files (e.g. 202401.xlsx).")
+    st.info("Please upload one or more monthly Excel files (e.g. 202401.csv).")
     st.stop()
 
 st.success("✅ Files uploaded. If you want to upload again, please move to another page and back to this page again to reset the uploaded files. Otherwise, uploaded files will be duplicated!")
@@ -42,7 +42,7 @@ def generate_official_report(files):
                 ]
             )
 
-            # Extract Year/Month from filename (assuming format YYYYMM.xlsx)
+            # Extract Year/Month from filename (assuming format YYYYMM.csv)
             year = filename[0:4]
             month = filename[4:6]
             df["Year"] = year
