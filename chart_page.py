@@ -15,31 +15,27 @@ def render_chart_page():
     # --- Filters in main page body ---
     st.subheader("🔍 Filters")
 
-    # --- Year Buttons ---
     years_list = sorted(df_raw["Year"].dropna().unique())
 
     if "selected_year" not in st.session_state:
-        st.session_state.selected_year = None  # default no selection
+        st.session_state.selected_year = "ALL"  # default show all
 
-    # Row 1: Select All + Clear
-    col_all, col_clear = st.columns([1, 1])
-    if col_all.button("✅ Select All"):
+    # --- Inline year buttons (Select All + Years) ---
+    cols = st.columns(len(years_list) + 1)
+
+    # Select All button
+    if cols[0].button("✅ Select All"):
         st.session_state.selected_year = "ALL"
-    if col_clear.button("❌ Clear"):
-        st.session_state.selected_year = None
 
-    # Row 2: Year buttons
-    cols = st.columns(len(years_list))
+    # Year buttons
     for i, yr in enumerate(years_list):
-        if cols[i].button(str(yr)):
+        if cols[i + 1].button(str(yr)):
             st.session_state.selected_year = yr
 
     selected_year = st.session_state.selected_year
 
     if selected_year == "ALL":
         st.write("✅ Showing data for **All Years**")
-    elif selected_year is None:
-        st.write("⚠️ No Year Selected (please pick one or Select All)")
     else:
         st.write(f"✅ Selected Year: **{selected_year}**")
 
@@ -48,7 +44,7 @@ def render_chart_page():
 
     # --- Apply filters ---
     df_filtered = df_raw.copy()
-    if selected_year and selected_year != "ALL":
+    if selected_year != "ALL":
         df_filtered = df_filtered[df_filtered["Year"] == selected_year]
     if items:
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
@@ -76,7 +72,7 @@ def render_chart_page():
         y="Quantity[Unit1]",
         markers=True,
         title="📈 Inventory Flow Over Time"
-        if selected_year == "ALL" or selected_year is None
+        if selected_year == "ALL"
         else f"📈 Inventory Flow Over Time ({selected_year})"
     )
 
