@@ -63,6 +63,7 @@ def generate_official_report(files):
         )
         pivot_df = pivot_df.reindex(columns=final_columns)
 
+        df_final['Quantity[Unit1]'] = df_final['Quantity[Unit1]'].abs()
         return pivot_df, df_final
 
     except Exception as e:
