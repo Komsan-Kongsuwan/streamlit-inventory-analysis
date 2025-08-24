@@ -14,19 +14,28 @@ def render_chart_page():
 
     # --- Filters in main page body ---
     st.subheader("🔍 Filters")
-    col1, col2 = st.columns(2)
 
-    with col1:
-        years_list = sorted(df_raw["Year"].dropna().unique())
-        year = st.radio("Select Year", years_list)
+    # --- Year Buttons ---
+    years_list = sorted(df_raw["Year"].dropna().unique())
 
-    with col2:
-        items = st.multiselect("Item Code", df_raw["Item Code"].unique())
+    if "selected_year" not in st.session_state:
+        st.session_state.selected_year = years_list[0]  # default first year
+
+    cols = st.columns(len(years_list))
+    for i, yr in enumerate(years_list):
+        if cols[i].button(str(yr)):
+            st.session_state.selected_year = yr
+
+    selected_year = st.session_state.selected_year
+    st.write(f"✅ Selected Year: **{selected_year}**")
+
+    # --- Item filter ---
+    items = st.multiselect("Item Code", df_raw["Item Code"].unique())
 
     # --- Apply filters ---
     df_filtered = df_raw.copy()
-    if year:
-        df_filtered = df_filtered[df_filtered["Year"] == year]
+    if selected_year:
+        df_filtered = df_filtered[df_filtered["Year"] == selected_year]
     if items:
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
 
@@ -52,7 +61,7 @@ def render_chart_page():
         x="Period",
         y="Quantity[Unit1]",
         markers=True,
-        title="📈 Inventory Flow Over Time (Positive Values Only)"
+        title=f"📈 Inventory Flow Over Time ({selected_year})"
     )
 
     fig.update_layout(
