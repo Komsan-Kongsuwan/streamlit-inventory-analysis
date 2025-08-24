@@ -20,7 +20,7 @@ def render_chart_page():
         st.session_state.selected_year = "ALL"
 
     # --- Wrap year buttons into multiple rows ---
-    buttons_per_row = 5  # adjust as needed
+    buttons_per_row = 10  # adjust as needed
     total_buttons = len(years_list) + 1  # +1 for "All" button
     num_rows = math.ceil(total_buttons / buttons_per_row)
 
