@@ -15,15 +15,18 @@ def render_chart_page():
     # --- Filters in main page body ---
     st.subheader("🔍 Filters")
     col1, col2 = st.columns(2)
+
     with col1:
-        years = st.multiselect("Year", sorted(df_raw["Year"].dropna().unique()))
+        years_list = sorted(df_raw["Year"].dropna().unique())
+        year = st.radio("Select Year", years_list)
+
     with col2:
         items = st.multiselect("Item Code", df_raw["Item Code"].unique())
 
     # --- Apply filters ---
     df_filtered = df_raw.copy()
-    if years:
-        df_filtered = df_filtered[df_filtered["Year"].isin(years)]
+    if year:
+        df_filtered = df_filtered[df_filtered["Year"] == year]
     if items:
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
 
@@ -59,4 +62,3 @@ def render_chart_page():
     )
 
     st.plotly_chart(fig, use_container_width=True)
-
