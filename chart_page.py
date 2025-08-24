@@ -20,7 +20,7 @@ def render_chart_page():
         st.session_state.selected_year = "ALL"  # default show all
 
     # --- Split page: left for buttons, right for dummy ---
-    left_col, right_col = st.columns([3, 1])  # left column narrower
+    left_col, right_col = st.columns([5, 2])  # left column narrower
 
     with left_col:
         # Inline year buttons using a smaller layout
