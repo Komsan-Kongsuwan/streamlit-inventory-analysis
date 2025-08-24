@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import calendar
 
+st.set_page_config(page_title="Inventory Analysis", layout="wide")
+
 def generate_official_report(files):
     try:
         df_list = []
