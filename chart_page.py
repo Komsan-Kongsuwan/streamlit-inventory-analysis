@@ -24,7 +24,8 @@ def render_chart_page():
     if items:
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
     
-
+    # --- Keep only Rcv(increase) ---
+    df_filtered = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]
     
     if df_filtered.empty:
         st.warning("⚠️ No data after filtering.")
