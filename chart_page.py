@@ -1,4 +1,3 @@
-# chart_page.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -20,16 +19,24 @@ def render_chart_page():
     if "selected_year" not in st.session_state:
         st.session_state.selected_year = "ALL"  # default show all
 
-    # --- Inline year buttons (Select All + Years) ---
-    cols = st.columns(len(years_list) + 1)
+    # --- CSS to reduce gap ---
+    st.markdown("""
+        <style>
+        .year-buttons button {
+            margin-right: 4px !important;
+            padding: 0.4rem 0.8rem;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
-    # Select All button
-    if cols[0].button("✅ Select All"):
+    # --- Inline year buttons ---
+    cols = st.columns(len(years_list) + 1, gap="small")
+
+    if cols[0].button("✅ All", key="all"):
         st.session_state.selected_year = "ALL"
 
-    # Year buttons
     for i, yr in enumerate(years_list):
-        if cols[i + 1].button(str(yr)):
+        if cols[i + 1].button(str(yr), key=f"yr_{yr}"):
             st.session_state.selected_year = yr
 
     selected_year = st.session_state.selected_year
