@@ -90,6 +90,7 @@ if df_raw.empty:
     st.stop()
 
 st.dataframe(df_pivot)
+st.dataframe(df_raw)
 
 # 👉 Save to session for Chart page
 st.session_state["official_data"] = df_raw
