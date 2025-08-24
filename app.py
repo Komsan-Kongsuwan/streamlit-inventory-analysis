@@ -27,7 +27,7 @@ def generate_official_report(files):
             # ✅ Read CSV (tab-separated, not Excel)
             df = pd.read_csv(
                 file,
-                #sep="\t",       # tab-delimited
+                sep=None,            # auto-detect delimiter
                 usecols=[
                     "Operation Date", "Rcv So Flag", "Owner Code", "Owner Name",
                     "Item Code", "Item Name", "Quantity[Unit1]", "UOM1",
