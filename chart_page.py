@@ -32,7 +32,7 @@ def render_chart_page():
 
     # --- Aggregate by Operation Date + Rcv So Flag ---
     chart_df = (
-        df_filtered.groupby(["Item Code", "Operation Date", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"]
+        df_filtered.groupby(["Operation Date", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"]
         .sum()
     )
     st.dataframe(df_filtered)
