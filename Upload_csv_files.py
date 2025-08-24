@@ -96,3 +96,5 @@ def render_data_loader():
 
     st.subheader("📊 Preview of Uploaded Data")
     st.dataframe(df_raw.head(20))
+    
+generate_official_report()
