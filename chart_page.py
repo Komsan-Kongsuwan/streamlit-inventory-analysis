@@ -31,7 +31,7 @@ def render_chart_page():
             cols = st.columns(cols_in_row, gap="small")
             for c in range(cols_in_row):
                 if btn_idx == 0:
-                    if cols[c].button("✅ All"):
+                    if cols[c].button("  All"):
                         st.session_state.selected_year = "ALL"
                 else:
                     yr = years_list[btn_idx - 1]
