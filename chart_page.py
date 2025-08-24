@@ -22,7 +22,7 @@ def render_chart_page():
     left_col, right_col = st.columns([1, 1])  # left narrow, right wider
 
     with left_col:
-        buttons_per_row = 10  # adjust max buttons per row
+        buttons_per_row = 8  # adjust max buttons per row
         total_buttons = len(years_list) + 1  # +1 for "All"
         num_rows = math.ceil(total_buttons / buttons_per_row)
 
