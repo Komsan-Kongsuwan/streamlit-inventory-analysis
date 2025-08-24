@@ -46,4 +46,32 @@ def render_chart_page():
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
 
     # --- Keep only Rcv(increase) ---
-    d
+    df_filtered = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]
+
+    if df_filtered.empty:
+        st.warning("⚠️ No data after filtering.")
+        return
+
+    df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
+
+    # --- Aggregate by Period ---
+    chart_df = df_filtered.groupby(["Period"], as_index=False)["Quantity[Unit1]"].sum()
+
+    # --- Line Chart ---
+    fig = px.line(
+        chart_df,
+        x="Period",
+        y="Quantity[Unit1]",
+        markers=True,
+        title="📈 Inventory Flow Over Time"
+        if st.session_state.selected_year=="ALL"
+        else f"📈 Inventory Flow Over Time ({st.session_state.selected_year})"
+    )
+
+    fig.update_layout(
+        xaxis_title="Period",
+        yaxis_title="Quantity",
+        template="plotly_white"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
