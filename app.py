@@ -54,6 +54,7 @@ def generate_official_report(files):
 
         df_final = pd.concat(df_list, ignore_index=True)
         df_final['Quantity[Unit1]'] = pd.to_numeric(df_final['Quantity[Unit1]'], errors='coerce').fillna(0)
+        st.dataframe(df_final)
 
         # --- pivot table ---
         pivot_df = pd.pivot_table(
