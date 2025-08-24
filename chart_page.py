@@ -32,14 +32,14 @@ def render_chart_page():
 
     # --- Aggregate by Operation Date + Rcv So Flag ---
     chart_df = (
-        df_filtered.groupby(["Month", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"]
+        df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"]
         .sum()
     )
     st.dataframe(chart_df)
     # --- Line Chart ---
     fig = px.line(
         chart_df,
-        x="Month",
+        x="Period",
         y="Quantity[Unit1]",
         color="Rcv So Flag",
         markers=True,
