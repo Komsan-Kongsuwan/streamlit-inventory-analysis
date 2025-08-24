@@ -89,8 +89,5 @@ if df_raw.empty:
     st.warning("⚠️ You uploaded wrong files, Please upload files again (Browse files).")
     st.stop()
 
-st.dataframe(df_pivot)
-st.dataframe(df_raw)
-
 # 👉 Save to session for Chart page
 st.session_state["official_data"] = df_raw
