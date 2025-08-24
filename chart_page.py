@@ -4,7 +4,7 @@ import pandas as pd
 import plotly.express as px
 
 def render_chart_page():
-    st.title("📊 Monthly Inventory Flow")
+    st.title("📊 Inventory Flow by Operation Date")
 
     if "official_data" not in st.session_state:
         st.warning("⚠️ No data found. Please upload files in the Data Loader page first.")
@@ -15,14 +15,11 @@ def render_chart_page():
     # --- Sidebar filters ---
     st.sidebar.header("🔍 Filters")
     years = st.sidebar.multiselect("Year", sorted(df_raw["Year"].dropna().unique()))
-    months = st.sidebar.multiselect("Month", sorted(df_raw["Month"].dropna().unique()))
     items = st.sidebar.multiselect("Item Code", df_raw["Item Code"].unique())
 
     df_filtered = df_raw.copy()
     if years:
         df_filtered = df_filtered[df_filtered["Year"].isin(years)]
-    if months:
-        df_filtered = df_filtered[df_filtered["Month"].isin(months)]
     if items:
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
 
@@ -33,11 +30,11 @@ def render_chart_page():
     # --- Take absolute values for Quantity[Unit1] ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
-    # --- Aggregate by Month + Rcv So Flag ---
+    # --- Aggregate by Operation Date + Rcv So Flag ---
     chart_df = (
-        df_filtered.groupby(["Month", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"]
+        df_filtered.groupby(["Operation Date", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"]
         .sum()
-        .sort_values("Month")
+        .sort_values("Operation Date")
     )
 
     # --- Line Chart ---
@@ -47,11 +44,11 @@ def render_chart_page():
         y="Quantity[Unit1]",
         color="Rcv So Flag",
         markers=True,
-        title="📈 Monthly Inbound vs Outbound (Positive Values Only)"
+        title="📈 Inventory Flow Over Time (Positive Values Only)"
     )
 
     fig.update_layout(
-        xaxis_title="Month",
+        xaxis_title="Operation Date",
         yaxis_title="Quantity",
         legend_title="Transaction Type",
         template="plotly_white"
