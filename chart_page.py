@@ -1,32 +1,29 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from streamlit_option_menu import option_menu
 
 def render_chart_page():
     st.title("📊 Inventory Flow by Operation Date")
 
+    # Check if data exists
     if "official_data" not in st.session_state:
         st.warning("⚠️ No data found. Please upload files in the Data Loader page first.")
         return
 
     df_raw = st.session_state["official_data"].copy()
-    years_list = sorted(df_raw["Year"].dropna().unique())  # <--- add this line
-    years_list_str = [str(y) for y in years_list]
 
-
+    # --- Year filter ---
+    years_list = sorted(df_raw["Year"].dropna().unique())
     if "selected_year" not in st.session_state:
         st.session_state.selected_year = "ALL"
 
-    # --- Option menu for year selection ---
-    selected_year = option_menu(
-        menu_title=None,
-        options=["ALL"] + years_list_str,
-        default_index=default_index,
-        orientation="horizontal",
-        styles={ ... }
+    # Radio buttons for year selection (horizontal)
+    selected_year = st.radio(
+        "Select Year",
+        options=["ALL"] + [str(y) for y in years_list],
+        index=0 if st.session_state.selected_year == "ALL" else years_list.tolist().index(st.session_state.selected_year) + 1,
+        horizontal=True
     )
-
     st.session_state.selected_year = selected_year if selected_year != "ALL" else "ALL"
 
     if st.session_state.selected_year == "ALL":
@@ -51,6 +48,7 @@ def render_chart_page():
         st.warning("⚠️ No data after filtering.")
         return
 
+    # --- Ensure positive Quantity ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
     # --- Aggregate by Period ---
@@ -63,7 +61,7 @@ def render_chart_page():
         y="Quantity[Unit1]",
         markers=True,
         title="📈 Inventory Flow Over Time"
-        if st.session_state.selected_year=="ALL"
+        if st.session_state.selected_year == "ALL"
         else f"📈 Inventory Flow Over Time ({st.session_state.selected_year})"
     )
 
