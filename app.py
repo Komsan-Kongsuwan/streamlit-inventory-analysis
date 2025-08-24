@@ -41,10 +41,8 @@ def generate_official_report(files):
                     "Inventory Qty", "Delivery Destination Code", "Delivery Destination Name"
                 ]
             )
-
-            # Extract Year/Month from filename (assuming format YYYYMM.csv)
-            year = filename[0:4]
-            month = filename[4:6]
+            year = df['Operation Date'].year
+            month = df['Operation Date].month
             df["Year"] = year
             df["Month"] = month
 
