@@ -1,0 +1,7 @@
+pandas
+numpy
+openpyxl
+xlsxwriter
+streamlit >=1.10
+plotly
+streamlit_option_menu
