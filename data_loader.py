@@ -1,19 +1,6 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import calendar
-
-st.set_page_config(page_title="Inventory Analysis (Admin)", layout="wide")
-st.title("💹 Inventory Analysis")
-
-# ✅ Uploader
-uploaded_files = st.file_uploader("📤 Upload .csv files", type="csv", accept_multiple_files=True)
-
-if not uploaded_files:
-    st.info("Please upload one or more monthly CSV files (e.g. 202401.csv).")
-    st.stop()
-
-st.success("✅ Files uploaded. If you want to upload again, please move to another page and back to this page again to reset the uploaded files. Otherwise, uploaded files will be duplicated!")
 
 def generate_official_report(files):
     try:
@@ -24,10 +11,11 @@ def generate_official_report(files):
             progress_bar.progress(int((i + 1) / len(files) * 100))
             filename = file.name
 
-            # ✅ Read CSV (tab-separated, not Excel)
+            # ✅ Read CSV (auto-detect delimiter)
             df = pd.read_csv(
                 file,
                 sep=None,            # auto-detect delimiter
+                engine="python",     # required for sep=None
                 usecols=[
                     "Operation Date", "Rcv So Flag", "Owner Code", "Owner Name",
                     "Item Code", "Item Name", "Quantity[Unit1]", "UOM1",
@@ -82,12 +70,28 @@ def generate_official_report(files):
         st.caption(f"Details: {e}")
         return pd.DataFrame(), pd.DataFrame()
 
-# --- Main execution ---
-df_pivot, df_raw = generate_official_report(uploaded_files)
 
-if df_raw.empty:
-    st.warning("⚠️ You uploaded wrong files, Please upload files again (Browse files).")
-    st.stop()
+def render_data_loader():
+    st.title("💹 Inventory Analysis – Data Loader")
 
-# 👉 Save to session for Chart page
-st.session_state["official_data"] = df_raw
+    # ✅ Uploader
+    uploaded_files = st.file_uploader("📤 Upload .csv files", type="csv", accept_multiple_files=True)
+
+    if not uploaded_files:
+        st.info("Please upload one or more monthly CSV files (e.g. 202401.csv).")
+        return
+
+    st.success("✅ Files uploaded. If you want to upload again, please move to another page and back to this page again.")
+
+    # --- Main execution ---
+    df_pivot, df_raw = generate_official_report(uploaded_files)
+
+    if df_raw.empty:
+        st.warning("⚠️ You uploaded wrong files, Please upload files again.")
+        return
+
+    # 👉 Save to session for Chart page
+    st.session_state["official_data"] = df_raw
+
+    st.subheader("📊 Preview of Uploaded Data")
+    st.dataframe(df_raw.head(20))
