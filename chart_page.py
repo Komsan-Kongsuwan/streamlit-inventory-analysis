@@ -10,34 +10,49 @@ def render_chart_page():
         return
 
     df_raw = st.session_state["official_data"].copy()
-
-    # --- Filters in main page body ---
-    st.subheader("🔍 Filters")
-
     years_list = sorted(df_raw["Year"].dropna().unique())
 
     if "selected_year" not in st.session_state:
-        st.session_state.selected_year = "ALL"  # default show all
+        st.session_state.selected_year = "ALL"
 
-    # --- CSS to reduce gap ---
+    # --- CSS for inline buttons ---
     st.markdown("""
         <style>
-        .year-buttons button {
-            margin-right: 4px !important;
-            padding: 0.4rem 0.8rem;
+        .year-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;   /* reduce spacing between buttons */
+        }
+        .year-container button {
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background: #f9f9f9;
+            cursor: pointer;
+        }
+        .year-container button.active {
+            background: #0366d6;
+            color: white;
+            font-weight: bold;
         }
         </style>
     """, unsafe_allow_html=True)
 
-    # --- Inline year buttons ---
-    cols = st.columns(len(years_list) + 1, gap="small")
+    # --- Render inline buttons ---
+    st.write("🔍 **Select Year**")
+    year_html = '<div class="year-container">'
+    year_html += f'<button class="{"active" if st.session_state.selected_year=="ALL" else ""}" onclick="window.location.href=\'?year=ALL\'">ALL</button>'
+    for yr in years_list:
+        year_html += f'<button class="{"active" if st.session_state.selected_year==yr else ""}" onclick="window.location.href=\'?year={yr}\'">{yr}</button>'
+    year_html += '</div>'
+    st.markdown(year_html, unsafe_allow_html=True)
 
-    if cols[0].button("✅ All", key="all"):
-        st.session_state.selected_year = "ALL"
-
-    for i, yr in enumerate(years_list):
-        if cols[i + 1].button(str(yr), key=f"yr_{yr}"):
-            st.session_state.selected_year = yr
+    # --- Capture selection from query params ---
+    query_params = st.query_params
+    if "year" in query_params:
+        st.session_state.selected_year = query_params["year"]
+        if st.session_state.selected_year != "ALL":
+            st.session_state.selected_year = int(st.session_state.selected_year)
 
     selected_year = st.session_state.selected_year
 
@@ -56,23 +71,19 @@ def render_chart_page():
     if items:
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
 
-    # --- Keep only Rcv(increase) ---
     df_filtered = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]
 
     if df_filtered.empty:
         st.warning("⚠️ No data after filtering.")
         return
 
-    # --- Take absolute values for Quantity[Unit1] ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
-    # --- Aggregate by Period ---
     chart_df = (
         df_filtered.groupby(["Period"], as_index=False)["Quantity[Unit1]"]
         .sum()
     )
 
-    # --- Line Chart ---
     fig = px.line(
         chart_df,
         x="Period",
@@ -81,12 +92,6 @@ def render_chart_page():
         title="📈 Inventory Flow Over Time"
         if selected_year == "ALL"
         else f"📈 Inventory Flow Over Time ({selected_year})"
-    )
-
-    fig.update_layout(
-        xaxis_title="Operation Date",
-        yaxis_title="Quantity",
-        template="plotly_white"
     )
 
     st.plotly_chart(fig, use_container_width=True)
