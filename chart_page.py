@@ -11,8 +11,9 @@ def render_chart_page():
         return
 
     df_raw = st.session_state["official_data"].copy()
+    years_list = sorted(df_raw["Year"].dropna().unique())  # <--- add this line
     years_list_str = [str(y) for y in years_list]
-    default_index = 0 if st.session_state.selected_year=="ALL" else years_list_str.index(str(st.session_state.selected_year))+1
+
 
     if "selected_year" not in st.session_state:
         st.session_state.selected_year = "ALL"
