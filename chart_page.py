@@ -12,16 +12,14 @@ def render_chart_page():
 
     df_raw = st.session_state["official_data"].copy()
 
-    # --- Year filter ---
     years_list = sorted(df_raw["Year"].dropna().unique())
-    if "selected_year" not in st.session_state:
-        st.session_state.selected_year = "ALL"
-
-    # Radio buttons for year selection (horizontal)
+    years_list_str = [str(y) for y in years_list]  # convert to strings
+    
+    # Radio buttons
     selected_year = st.radio(
         "Select Year",
-        options=["ALL"] + [str(y) for y in years_list],
-        index=0 if st.session_state.selected_year == "ALL" else years_list.tolist().index(st.session_state.selected_year) + 1,
+        options=["ALL"] + years_list_str,
+        index=0 if st.session_state.selected_year == "ALL" else years_list_str.index(str(st.session_state.selected_year)),
         horizontal=True
     )
     st.session_state.selected_year = selected_year if selected_year != "ALL" else "ALL"
