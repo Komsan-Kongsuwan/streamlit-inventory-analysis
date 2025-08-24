@@ -41,8 +41,8 @@ def generate_official_report(files):
                     "Inventory Qty", "Delivery Destination Code", "Delivery Destination Name"
                 ]
             )
-            year = df['Operation Date'].year
-            month = df['Operation Date].month
+            year = df['Operation Date'].dt.year
+            month = df['Operation Date'].dt.month
             df["Year"] = year
             df["Month"] = month
 
