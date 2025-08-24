@@ -195,7 +195,170 @@ class DataLoader:
             .agg(self.agg_dict2)
         )
 
-    # ✅ ที่เหลือ (daily_transaction, weekly_transaction, monthly_transaction, yearly_transaction,
-    # stock_aging, storage_day, save_df_to_sheet_in_chunks, save_to_excel) 
-    # ผม copy มาไว้ครบทุกตัวจากโค้ดเดิม 
-    # (เพื่อไม่ให้ข้อความยาวเกิน limit ผมย่อส่วนท้าย แต่ในไฟล์จริงคุณจะได้ครบทุก method)
+    # ---------- TRANSACTION METHODS ----------
+    def daily_transaction(self):
+        self.df_daily_transaction = (
+            self.df_receive_ship_stock_daily
+            .groupby(['Owner Code', 'Item Code', 'Operation Date', 'Rcv So Flag'], as_index=False)
+            .agg(self.agg_dict2)
+        )
+
+    def weekly_transaction(self):
+        df = self.df_receive_ship_stock_daily.copy()
+        df["Week"] = df["Operation Date"].dt.to_period("W").apply(lambda r: r.start_time)
+        self.df_weekly_transaction = (
+            df.groupby(['Owner Code', 'Item Code', 'Week', 'Rcv So Flag'], as_index=False)
+              .agg(self.agg_dict2)
+        )
+        self.df_weekly_transaction.rename(columns={"Week": "Operation Date"}, inplace=True)
+
+    def monthly_transaction(self):
+        df = self.df_receive_ship_stock_daily.copy()
+        df["Month"] = df["Operation Date"].dt.to_period("M").apply(lambda r: r.start_time)
+        self.df_monthly_transaction = (
+            df.groupby(['Owner Code', 'Item Code', 'Month', 'Rcv So Flag'], as_index=False)
+              .agg(self.agg_dict2)
+        )
+        self.df_monthly_transaction.rename(columns={"Month": "Operation Date"}, inplace=True)
+
+    def yearly_transaction(self):
+        df = self.df_receive_ship_stock_daily.copy()
+        df["Year"] = df["Operation Date"].dt.to_period("Y").apply(lambda r: r.start_time)
+        self.df_yearly_transaction = (
+            df.groupby(['Owner Code', 'Item Code', 'Year', 'Rcv So Flag'], as_index=False)
+              .agg(self.agg_dict2)
+        )
+        self.df_yearly_transaction.rename(columns={"Year": "Operation Date"}, inplace=True)
+
+    # ---------- STOCK AGING & STORAGE DAY ----------
+    def stock_aging(self):
+        # copy stock daily
+        df = self.df_stock_daily.copy()
+        df["Stock Age (Days)"] = (pd.Timestamp.today().normalize() - df["Operation Date"]).dt.days
+        df.loc[df["Stock Age (Days)"] < 0, "Stock Age (Days)"] = 0
+        self.df_stock_aging = df
+
+    def storage_day(self):
+        # Calculate storage days = Stock Qty / Movement
+        df = self.df_stock_daily.copy()
+
+        df["Movement"] = df["Rcv Qty"] + df["Ship Qty"]
+        df["Storage Days"] = df.apply(
+            lambda row: row["Stock Qty"] / row["Movement"] if row["Movement"] > 0 else None,
+            axis=1
+        )
+        self.df_storage_day = df
+
+
+
+    
+    # ---------- SAVE TO EXCEL ----------
+    def save_df_to_sheet_in_chunks(self, writer, df, sheet_name, chunk_size=1000):
+        """Save DataFrame to Excel in chunks (no signals needed for Streamlit)."""
+        wb = writer.book
+        ws = wb.create_sheet(title=sheet_name)
+
+        # Write header
+        for row in dataframe_to_rows(df.iloc[:0], index=False, header=True):
+            ws.append(row)
+
+        total_rows = len(df)
+        if total_rows == 0:
+            return
+
+        for i in range(0, total_rows, chunk_size):
+            chunk = df.iloc[i:i + chunk_size]
+            for row in dataframe_to_rows(chunk, index=False, header=False):
+                ws.append(row)
+
+        # Apply formatting
+        format_sheet_column_width(ws)
+        format_sheet_header_border(ws)
+        format_sheet_header_horizontal_alignment(ws)
+        format_sheet_header_font_bold(ws)
+        format_sheet_detail_border(ws)
+        format_sheet_detail_horizontal_alignment(ws)
+        format_sheet_detail_number_format(ws)
+        format_sheet_bottom_total_formula(ws)
+        format_sheet_bottom_border(ws)
+        format_sheet_add_auto_filter(ws)
+
+    def save_to_excel(self):
+        """Save all DataFrames into one Excel file."""
+        try:
+            with pd.ExcelWriter(self.file_name, engine='openpyxl') as writer:
+                # Initialize workbook with dummy sheet
+                pd.DataFrame().to_excel(writer, sheet_name='dummy', index=False)
+
+                # List of all DataFrames to save
+                sheets = [
+                    ('Daily Transaction', self.df_daily_transaction),
+                    ('Weekly Transaction', self.df_weekly_transaction),
+                    ('Monthly Transaction', self.df_monthly_transaction),
+                    ('Yearly Transaction', self.df_yearly_transaction),
+                    ('Stock Aging', self.df_stock_aging),
+                    ('Storage Day', self.df_storage_day),
+                ]
+
+                for sheet_name, df in sheets:
+                    self.save_df_to_sheet_in_chunks(writer, df, sheet_name)
+
+                # Remove dummy sheet
+                if 'dummy' in writer.book.sheetnames:
+                    writer.book.remove(writer.book['dummy'])
+
+        except Exception as e:
+            raise RuntimeError(f"Error saving Excel: {e}")
+
+
+
+
+    # ---------- MAIN RUN ----------
+    def run(self):
+        """Run the full pipeline: load → aggregate → save → update session_state."""
+        try:
+            # Step 1: Load and preprocess raw data
+            self.load_raw_data()
+
+            # Step 2: Aggregations
+            self.aggregate_daily()
+            self.aggregate_weekly()
+            self.aggregate_monthly()
+            self.aggregate_yearly()
+
+            # Step 3: Stock calculations
+            self.calculate_stock_aging()
+            self.calculate_storage_day()
+
+            # Step 4: Save to Excel
+            self.save_to_excel()
+
+            # Step 5: Push into Streamlit session_state
+            st.session_state["official_data"] = self.df_monthly_transaction
+            st.session_state["selected_site"] = (
+                self.df_monthly_transaction["Site"].dropna().unique()[0]
+                if not self.df_monthly_transaction.empty else None
+            )
+            st.session_state["message"] = "✅ Data successfully loaded and processed."
+
+        except Exception as e:
+            st.error(f"❌ Error during run: {e}")
+
+
+
+
+    # ---------- DOWNLOAD EXCEL ----------
+    def render_download_button(self):
+        """Render a Streamlit download button for the processed Excel file."""
+        if self.output_path.exists():
+            with open(self.output_path, "rb") as f:
+                st.download_button(
+                    label="📥 Download Processed Excel",
+                    data=f,
+                    file_name=self.output_path.name,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key="download_processed_excel"
+                )
+        else:
+            st.info("ℹ️ Processed Excel file not found. Please run the pipeline first.")
+
