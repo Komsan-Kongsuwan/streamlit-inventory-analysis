@@ -69,7 +69,7 @@ def generate_official_report(files):
         pivot_df = pivot_df.rename(columns=month_map)
 
         final_columns = (
-            ['Owner Code', 'Owner Name', 'Item Code', 'Item Name', 'Year']
+            ['Owner Code', 'Owner Name', 'Item Code', 'Item Name', 'Year', 'Rcv So Flag]
             + list(month_map.values())
             + ['Grand Total']
         )
