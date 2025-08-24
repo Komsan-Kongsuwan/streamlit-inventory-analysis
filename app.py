@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import calendar
-from chart_page import render_chart
+from chart_page import render_chart_page
 
 st.set_page_config(page_title="Inventory Analysis (Admin)", layout="wide")
 st.title("💹 Inventory Analysis")
@@ -92,4 +92,4 @@ if df_raw.empty:
 
 # 👉 Save to session for Chart page
 st.session_state["official_data"] = df_raw
-render_chart()
+render_chart_page()
