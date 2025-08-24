@@ -15,44 +15,19 @@ def render_chart_page():
     if "selected_year" not in st.session_state:
         st.session_state.selected_year = "ALL"
 
-    # --- CSS for inline buttons ---
-    st.markdown("""
-        <style>
-        .year-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;   /* reduce spacing between buttons */
-        }
-        .year-container button {
-            padding: 4px 10px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            background: #f9f9f9;
-            cursor: pointer;
-        }
-        .year-container button.active {
-            background: #0366d6;
-            color: white;
-            font-weight: bold;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # --- Render inline buttons ---
     st.write("🔍 **Select Year**")
-    year_html = '<div class="year-container">'
-    year_html += f'<button class="{"active" if st.session_state.selected_year=="ALL" else ""}" onclick="window.location.href=\'?year=ALL\'">ALL</button>'
-    for yr in years_list:
-        year_html += f'<button class="{"active" if st.session_state.selected_year==yr else ""}" onclick="window.location.href=\'?year={yr}\'">{yr}</button>'
-    year_html += '</div>'
-    st.markdown(year_html, unsafe_allow_html=True)
 
-    # --- Capture selection from query params ---
-    query_params = st.query_params
-    if "year" in query_params:
-        st.session_state.selected_year = query_params["year"]
-        if st.session_state.selected_year != "ALL":
-            st.session_state.selected_year = int(st.session_state.selected_year)
+    # Create N+1 tight columns for "ALL" + each year
+    cols = st.columns(len(years_list) + 1, gap="small")
+
+    # ALL button
+    if cols[0].button("ALL", key="btn_all"):
+        st.session_state.selected_year = "ALL"
+
+    # Year buttons
+    for i, yr in enumerate(years_list, start=1):
+        if cols[i].button(str(yr), key=f"btn_{yr}"):
+            st.session_state.selected_year = yr
 
     selected_year = st.session_state.selected_year
 
@@ -71,6 +46,7 @@ def render_chart_page():
     if items:
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
 
+    # Only keep Rcv(increase)
     df_filtered = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]
 
     if df_filtered.empty:
