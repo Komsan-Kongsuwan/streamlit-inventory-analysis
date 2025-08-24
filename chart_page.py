@@ -1,4 +1,3 @@
-# chart_page.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -20,17 +19,21 @@ def render_chart_page():
     if "selected_year" not in st.session_state:
         st.session_state.selected_year = "ALL"  # default show all
 
-    # --- Inline year buttons (Select All + Years) ---
-    cols = st.columns(len(years_list) + 1)
+    # --- Split page: left for buttons, right for dummy ---
+    left_col, right_col = st.columns([1, 3])  # left column narrower
 
-    # Select All button
-    if cols[0].button("✅ Select All"):
-        st.session_state.selected_year = "ALL"
+    with left_col:
+        # Inline year buttons using a smaller layout
+        btn_cols = st.columns(len(years_list) + 1, gap="small")  # gap="small" reduces spacing
 
-    # Year buttons
-    for i, yr in enumerate(years_list):
-        if cols[i + 1].button(str(yr)):
-            st.session_state.selected_year = yr
+        # Select All button
+        if btn_cols[0].button("✅ All"):
+            st.session_state.selected_year = "ALL"
+
+        # Year buttons
+        for i, yr in enumerate(years_list):
+            if btn_cols[i + 1].button(str(yr)):
+                st.session_state.selected_year = yr
 
     selected_year = st.session_state.selected_year
 
@@ -53,33 +56,4 @@ def render_chart_page():
     df_filtered = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]
 
     if df_filtered.empty:
-        st.warning("⚠️ No data after filtering.")
-        return
-
-    # --- Take absolute values for Quantity[Unit1] ---
-    df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
-
-    # --- Aggregate by Period ---
-    chart_df = (
-        df_filtered.groupby(["Period"], as_index=False)["Quantity[Unit1]"]
-        .sum()
-    )
-
-    # --- Line Chart ---
-    fig = px.line(
-        chart_df,
-        x="Period",
-        y="Quantity[Unit1]",
-        markers=True,
-        title="📈 Inventory Flow Over Time"
-        if selected_year == "ALL"
-        else f"📈 Inventory Flow Over Time ({selected_year})"
-    )
-
-    fig.update_layout(
-        xaxis_title="Operation Date",
-        yaxis_title="Quantity",
-        template="plotly_white"
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
+        st.warning("⚠️ No data
