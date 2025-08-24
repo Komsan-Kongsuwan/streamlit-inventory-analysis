@@ -27,8 +27,8 @@ def generate_official_report(files):
             df["Operation Date"] = pd.to_datetime(df["Operation Date"], errors="coerce", dayfirst=True)
 
             # ✅ Add Year/Month columns
-            df["Year"] = df["Operation Date"].dt.year
-            df["Month"] = df["Operation Date"].dt.month
+            df["Year"] = df["Operation Date"].dt.year.str()
+            df["Month"] = df["Operation Date"].dt.month.str(
             df["Period"] = df["Year"]+df["Month"]
 
             df_list.append(df)
