@@ -54,7 +54,7 @@ def generate_official_report(files):
         # --- pivot table ---
         pivot_df = pd.pivot_table(
             df_final,
-            index=['Owner Code', 'Owner Name', 'Item Code', 'Item Name', 'Year'],
+            index=['Owner Code', 'Owner Name', 'Item Code', 'Item Name', 'Year', 'Rcv So Flag'],
             columns='Month',
             values='Quantity[Unit1]',
             aggfunc='sum',
