@@ -11,23 +11,21 @@ def render_chart_page():
         return
 
     df_raw = st.session_state["official_data"].copy()
-    years_list = sorted(df_raw["Year"].dropna().unique())
+    years_list_str = [str(y) for y in years_list]
+    default_index = 0 if st.session_state.selected_year=="ALL" else years_list_str.index(str(st.session_state.selected_year))+1
 
     if "selected_year" not in st.session_state:
         st.session_state.selected_year = "ALL"
 
     # --- Option menu for year selection ---
     selected_year = option_menu(
-        menu_title=None,  # no title
-        options=["ALL"] + [str(y) for y in years_list],
-        default_index=0 if st.session_state.selected_year=="ALL" else years_list.index(st.session_state.selected_year)+1,
+        menu_title=None,
+        options=["ALL"] + years_list_str,
+        default_index=default_index,
         orientation="horizontal",
-        styles={
-            "container": {"padding": "0px", "gap": "5px"},
-            "nav-link": {"font-size": "14px", "padding": "4px 12px"},
-            "nav-link-selected": {"background-color": "#0366d6", "color": "white"},
-        }
+        styles={ ... }
     )
+
     st.session_state.selected_year = selected_year if selected_year != "ALL" else "ALL"
 
     if st.session_state.selected_year == "ALL":
