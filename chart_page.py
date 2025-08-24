@@ -34,7 +34,7 @@ def render_chart_page():
     chart_df = (
         df_filtered.groupby(["Item Code", "Operation Date", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"]
         .sum()
-        .sort_values("Operation Date")
+        .sort_values("Item Code")
     )
 
     # --- Line Chart ---
