@@ -3,6 +3,20 @@ import pandas as pd
 import plotly.express as px
 import calendar
 
+def day_suffix(d):
+    """Return day with suffix like 1st, 2nd, 3rd, 4th ..."""
+    if 11 <= d <= 13:
+        return f"{d}th"
+    last_digit = d % 10
+    if last_digit == 1:
+        return f"{d}st"
+    elif last_digit == 2:
+        return f"{d}nd"
+    elif last_digit == 3:
+        return f"{d}rd"
+    else:
+        return f"{d}th"
+
 def render_chart_page():
     st.title("📊 Inventory Flow by Operation Date")
 
@@ -16,7 +30,7 @@ def render_chart_page():
     years_list = sorted(df_raw["Year"].dropna().unique())
     selected_year = st.sidebar.selectbox("Select Year", ["ALL"] + list(years_list), index=0)
 
-    # --- Sidebar: Month filter (vertical buttons) ---
+    # --- Sidebar: Month filter ---
     months = list(range(1, 13))
     selected_month = st.sidebar.radio(
         "Select Month (optional)",
@@ -44,25 +58,36 @@ def render_chart_page():
         st.warning("⚠️ No data after filtering.")
         return
 
-    # --- Keep relevant categories and take absolute value ---
+    # --- Keep relevant categories and absolute value ---
     df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
-    # --- Determine aggregation level ---
+    # --- Determine aggregation level and fill missing x-axis ---
     if selected_month_num:
         # Daily aggregation
         if "Day" not in df_filtered.columns and "Operation Date" in df_filtered.columns:
             df_filtered["Day"] = pd.to_datetime(df_filtered["Operation Date"]).dt.day
         elif "Day" not in df_filtered.columns:
-            df_filtered["Day"] = 1  # fallback
+            df_filtered["Day"] = 1
+
+        # Create full list of days for month
+        total_days = pd.Series(range(1, 32))  # assume max 31
         chart_df = df_filtered.groupby(["Day", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        chart_df["x_label"] = chart_df["Day"].astype(str)  # Display day number
+        # Fill missing days with zero
+        all_days_flags = pd.MultiIndex.from_product([total_days, chart_df["Rcv So Flag"].unique()], names=["Day", "Rcv So Flag"])
+        chart_df = chart_df.set_index(["Day", "Rcv So Flag"]).reindex(all_days_flags, fill_value=0).reset_index()
+        chart_df["x_label"] = chart_df["Day"].apply(day_suffix)
         chart_title = f"📊 Daily Inventory in {selected_year}-{calendar.month_abbr[selected_month_num]}"
+
     elif selected_year != "ALL":
         # Monthly aggregation
         chart_df = df_filtered.groupby(["Month", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        # Fill missing months
+        all_months_flags = pd.MultiIndex.from_product([months, chart_df["Rcv So Flag"].unique()], names=["Month", "Rcv So Flag"])
+        chart_df = chart_df.set_index(["Month", "Rcv So Flag"]).reindex(all_months_flags, fill_value=0).reset_index()
         chart_df["x_label"] = chart_df["Month"].apply(lambda m: calendar.month_abbr[m])
         chart_title = f"📊 Monthly Inventory in {selected_year}"
+
     else:
         # Yearly aggregation
         chart_df = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
