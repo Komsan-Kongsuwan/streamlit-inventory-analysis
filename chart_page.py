@@ -74,21 +74,25 @@ def render_chart_page():
     # --- Aggregate by Period ---
     chart_df = df_filtered.groupby(["Period"], as_index=False)["Quantity[Unit1]"].sum()
 
-    # --- Line Chart ---
-    fig = px.line(
+    # --- Bar Chart ---
+    fig = px.bar(
         chart_df,
         x="Period",
         y="Quantity[Unit1]",
-        markers=True,
-        title="📈 Inventory Flow Over Time"
+        text="Quantity[Unit1]",
+        title="📊 Inventory Flow Over Time"
         if selected_year == "ALL"
-        else f"📈 Inventory Flow Over Time ({selected_year})"
+        else f"📊 Inventory Flow Over Time ({selected_year})"
     )
-
+    
+    fig.update_traces(texttemplate='%{text:.0f}', textposition='outside')  # show values on top of bars
     fig.update_layout(
         xaxis_title="Period",
         yaxis_title="Quantity",
-        template="plotly_white"
+        template="plotly_white",
+        uniformtext_minsize=8,
+        uniformtext_mode='hide'
     )
-
+    
     st.plotly_chart(fig, use_container_width=True)
+
