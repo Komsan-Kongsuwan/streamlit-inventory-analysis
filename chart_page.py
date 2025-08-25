@@ -75,7 +75,7 @@ def render_chart_page():
     chart_df = df_filtered.groupby(["Period"], as_index=False)["Quantity[Unit1]"].sum()
 
     # --- Line Chart ---
-    fig = px.bar(
+    fig = px.line(
         chart_df,
         x="Period",
         y="Quantity[Unit1]",
