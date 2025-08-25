@@ -61,6 +61,9 @@ def render_chart_page():
     if items:
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
 
+    # --- Keep only Rcv(increase) ---
+    df_filtered = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]
+
     if df_filtered.empty:
         st.warning("⚠️ No data after filtering.")
         return
@@ -68,37 +71,24 @@ def render_chart_page():
     # --- Take absolute values for Quantity[Unit1] ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
+    # --- Aggregate by Period ---
+    chart_df = df_filtered.groupby(["Period"], as_index=False)["Quantity[Unit1]"].sum()
 
-
-
-
-    # --- Aggregate by Period + Rcv So Flag ---
-    chart_df = (
-        df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"]
-        .sum()
-    )
-    
-    # --- Bar Chart with categories ---
+    # --- Line Chart ---
     fig = px.line(
         chart_df,
         x="Period",
         y="Quantity[Unit1]",
-        color="Rcv So Flag",       # separate bars by category
-        barmode="group",           # side-by-side bars
-        text="Quantity[Unit1]",
-        title="📊 Inventory Flow Over Time"
+        markers=True,
+        title="📈 Inventory Flow Over Time"
         if selected_year == "ALL"
-        else f"📊 Inventory Flow Over Time ({selected_year})"
+        else f"📈 Inventory Flow Over Time ({selected_year})"
     )
-    
-    fig.update_traces(texttemplate='%{text:.0f}', textposition='outside')
+
     fig.update_layout(
         xaxis_title="Period",
         yaxis_title="Quantity",
-        template="plotly_white",
-        uniformtext_minsize=8,
-        uniformtext_mode='hide'
+        template="plotly_white"
     )
-    
-    st.plotly_chart(fig, use_container_width=True)
 
+    st.plotly_chart(fig, use_container_width=True)
