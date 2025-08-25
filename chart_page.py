@@ -24,7 +24,7 @@ def render_chart_page():
 
     # --- Dynamic column ratio ---
     left_width = min(total_buttons, buttons_per_row) * 2  # 2 units per button
-    right_width = 20 - left_width
+    right_width = 30 - left_width
     right_width = max(right_width, 1)  # prevent zero width
 
     left_col, right_col = st.columns([left_width, right_width])
