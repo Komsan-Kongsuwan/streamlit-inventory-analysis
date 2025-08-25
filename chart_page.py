@@ -79,7 +79,9 @@ def render_chart_page():
 
 
 
-    # --- Line Chart (2 categories) ---
+
+
+    # --- Line Chart (2 categories, no legend) ---
     fig_line = px.line(
         chart_df,
         x="Period",
@@ -94,23 +96,29 @@ def render_chart_page():
         xaxis_title="Period",
         yaxis_title="Quantity",
         template="plotly_white",
-        legend_title="Category"
+        showlegend=False   # 🔹 Hide legend
     )
     
-    # --- Bar Chart (grouped by Period + Category) ---
+    # --- Bar Chart (legend at bottom) ---
     fig_bar = px.bar(
         chart_df,
         x="Period",
         y="Quantity[Unit1]",
         color="Rcv So Flag",
-        barmode="group",  # side-by-side bars
+        barmode="group",
         title="📊 Inventory by Period and Category"
     )
     fig_bar.update_layout(
         xaxis_title="Period",
         yaxis_title="Quantity",
         template="plotly_white",
-        legend_title="Category"
+        legend=dict(
+            orientation="h",        # 🔹 horizontal
+            yanchor="bottom",
+            y=-0.3,                 # 🔹 move below chart
+            xanchor="center",
+            x=0.5
+        )
     )
     
     # --- Display side by side (60:40) ---
@@ -119,3 +127,4 @@ def render_chart_page():
         st.plotly_chart(fig_line, use_container_width=True)
     with col2:
         st.plotly_chart(fig_bar, use_container_width=True)
+
