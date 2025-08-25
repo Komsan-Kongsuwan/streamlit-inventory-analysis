@@ -73,7 +73,7 @@ def render_chart_page():
         # Line chart: sum by Year + Period + Rcv So Flag
         chart_df_line = df_grouped.groupby(["Year", "Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_line["YearPeriod"] = chart_df_line["Year"].astype(str) + "-" + chart_df_line["Period"].astype(str).str.zfill(2)
-        chart_df_line = chart_df_line.sort_values(["Year"])
+        chart_df_line = chart_df_line.sort_values(["Period"])
         # Bar chart: sum by Year + Rcv So Flag
         chart_df_bar = df_grouped.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_bar = chart_df_bar.sort_values("Year")
