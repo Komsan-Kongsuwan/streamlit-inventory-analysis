@@ -34,15 +34,33 @@ def render_chart_page():
             cols_in_row = min(buttons_per_row, total_buttons - btn_idx)
             cols = st.columns(cols_in_row, gap="small")
             for c in range(cols_in_row):
+                # Determine label and background color
                 if btn_idx == 0:
-                    label = "✅ All" if st.session_state.selected_year == "ALL" else "All"
-                    if cols[c].button(label):
-                        st.session_state.selected_year = "ALL"
+                    year_label = "All"
+                    is_selected = st.session_state.selected_year == "ALL"
                 else:
-                    yr = years_list[btn_idx - 1]
-                    label = f"✅ {yr}" if st.session_state.selected_year == yr else str(yr)
-                    if cols[c].button(label):
-                        st.session_state.selected_year = yr
+                    year_label = str(years_list[btn_idx - 1])
+                    is_selected = st.session_state.selected_year == years_list[btn_idx - 1]
+
+                bg_color = "#4CAF50" if is_selected else "#E0E0E0"  # green if selected, light gray if not
+                text_color = "#FFFFFF" if is_selected else "#000000"
+
+                # Create HTML button
+                button_html = f"""
+                <div style='text-align:center; margin-bottom:4px'>
+                    <button style='background-color:{bg_color}; color:{text_color};
+                                   border:none; padding:6px 12px; border-radius:6px; width:100%; cursor:pointer;'>
+                        {year_label}
+                    </button>
+                </div>
+                """
+
+                if cols[c].button(year_label) or st.markdown(button_html, unsafe_allow_html=True):
+                    if btn_idx == 0:
+                        st.session_state.selected_year = "ALL"
+                    else:
+                        st.session_state.selected_year = years_list[btn_idx - 1]
+
                 btn_idx += 1
 
     selected_year = st.session_state.selected_year
