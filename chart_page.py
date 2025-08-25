@@ -18,44 +18,41 @@ def render_chart_page():
         df_raw["Month"] = df_raw["Operation Date"].dt.month
         df_raw["Week"] = df_raw["Operation Date"].dt.isocalendar().week.astype(int)
 
-    st.subheader("🔍 Filters")
+    # --- Sidebar Filters ---
+    st.sidebar.subheader("🔍 Filters")
 
-    # --- Year buttons ---
+    # Year buttons
     years_list = sorted(df_raw["Year"].dropna().unique())
     if "selected_year" not in st.session_state:
         st.session_state.selected_year = "ALL"
 
     total_buttons = len(years_list) + 1
-    buttons_per_row = 8
+    buttons_per_row = 4  # Sidebar narrower
     num_rows = math.ceil(total_buttons / buttons_per_row)
 
-    left_width = min(total_buttons, buttons_per_row) * 2
-    right_width = 30 - left_width
-    right_width = max(right_width, 1)
-    left_col, right_col = st.columns([left_width, right_width])
-
-    with left_col:
-        btn_idx = 0
-        for row in range(num_rows):
-            cols_in_row = min(buttons_per_row, total_buttons - btn_idx)
-            cols = st.columns(cols_in_row, gap="small")
-            for c in range(cols_in_row):
-                if btn_idx == 0:
-                    if cols[c].button("✅ All"):
-                        st.session_state.selected_year = "ALL"
-                else:
-                    yr = years_list[btn_idx - 1]
-                    if cols[c].button(str(yr)):
-                        st.session_state.selected_year = yr
-                btn_idx += 1
+    st.sidebar.write("### Select Year")
+    btn_idx = 0
+    for row in range(num_rows):
+        cols_in_row = min(buttons_per_row, total_buttons - btn_idx)
+        cols = st.sidebar.columns(cols_in_row, gap="small")
+        for c in range(cols_in_row):
+            if btn_idx == 0:
+                if cols[c].button("✅ All"):
+                    st.session_state.selected_year = "ALL"
+            else:
+                yr = years_list[btn_idx - 1]
+                if cols[c].button(str(yr)):
+                    st.session_state.selected_year = yr
+            btn_idx += 1
 
     selected_year = st.session_state.selected_year
-    st.write(f"✅ Showing data for **{selected_year}**" if selected_year != "ALL" else "✅ Showing data for **All Years**")
 
-    # --- Filters ---
-    items = st.multiselect("Item Code", df_raw["Item Code"].unique())
-    months = st.multiselect("Month", sorted(df_raw["Month"].dropna().unique()))
-    weeks = st.multiselect("Week", sorted(df_raw["Week"].dropna().unique()))
+    # Item, Month, Week filters
+    items = st.sidebar.multiselect("Item Code", df_raw["Item Code"].unique())
+    months = st.sidebar.multiselect("Month", sorted(df_raw["Month"].dropna().unique()))
+    weeks = st.sidebar.multiselect("Week", sorted(df_raw["Week"].dropna().unique()))
+
+    st.write(f"✅ Showing data for **{selected_year}**" if selected_year != "ALL" else "✅ Showing data for **All Years**")
 
     # --- Apply filters ---
     df_filtered = df_raw.copy()
@@ -78,7 +75,7 @@ def render_chart_page():
     # --- Take absolute values for Quantity ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
-    # --- Aggregate for Bar Chart ---
+    # --- Aggregate correctly to avoid double-counting ---
     if selected_year == "ALL":
         chart_df_bar = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_bar = chart_df_bar.sort_values("Year")
