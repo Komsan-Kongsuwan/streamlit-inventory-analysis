@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import math
 import calendar
 
 def render_chart_page():
@@ -17,7 +16,7 @@ def render_chart_page():
     years_list = sorted(df_raw["Year"].dropna().unique())
     selected_year = st.sidebar.selectbox("Select Year", ["ALL"] + list(years_list), index=0)
 
-    # --- Sidebar: Month filter (vertical buttons) ---
+    # --- Sidebar: Month filter (vertical radio buttons) ---
     months = list(range(1, 13))
     selected_month = st.sidebar.radio(
         "Select Month (optional)",
@@ -25,7 +24,6 @@ def render_chart_page():
         index=0
     )
     if selected_month != "All":
-        # Convert month abbreviation to number
         selected_month_num = list(calendar.month_abbr).index(selected_month)
     else:
         selected_month_num = None
@@ -46,7 +44,7 @@ def render_chart_page():
         st.warning("⚠️ No data after filtering.")
         return
 
-    # --- Keep relevant categories and take absolute value ---
+    # --- Keep relevant categories and absolute quantity ---
     df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
@@ -59,28 +57,28 @@ def render_chart_page():
             df_filtered["Day"] = 1  # fallback
         chart_df = df_filtered.groupby(["Day", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         x_col = "Day"
-        chart_title = f"📊 Daily Inventory in {selected_year}-{calendar.month_abbr[selected_month_num]}"
+        chart_title = f"📈 Daily Inventory in {selected_year}-{calendar.month_abbr[selected_month_num]}"
     elif selected_year != "ALL":
         # Monthly aggregation for selected year
         chart_df = df_filtered.groupby(["Month", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         x_col = "Month"
-        chart_title = f"📊 Monthly Inventory in {selected_year}"
+        chart_title = f"📈 Monthly Inventory in {selected_year}"
     else:
         # Yearly aggregation
         chart_df = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         x_col = "Year"
-        chart_title = "📊 Inventory by Year"
+        chart_title = "📈 Inventory by Year"
 
-    # --- Bar chart ---
-    fig_bar = px.bar(
+    # --- Line Chart ---
+    fig_line = px.line(
         chart_df,
         x=x_col,
         y="Quantity[Unit1]",
         color="Rcv So Flag",
-        barmode="group",
+        markers=True,
         title=chart_title
     )
-    fig_bar.update_layout(
+    fig_line.update_layout(
         xaxis_title=x_col,
         yaxis_title="Quantity",
         template="plotly_white",
@@ -93,4 +91,4 @@ def render_chart_page():
         )
     )
 
-    st.plotly_chart(fig_bar, use_container_width=True)
+    st.plotly_chart(fig_line, use_container_width=True)
