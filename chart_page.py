@@ -13,11 +13,14 @@ def render_chart_page():
     df_raw = st.session_state["official_data"].copy()
     st.subheader("🔍 Filters")
 
+    # Ensure Rcv So Flag has no trailing spaces
+    df_raw['Rcv So Flag'] = df_raw['Rcv So Flag'].str.strip()
+
     years_list = sorted(df_raw["Year"].dropna().unique())
     if "selected_year" not in st.session_state:
         st.session_state.selected_year = "ALL"
 
-    # --- Button layout parameters ---
+    # --- Button layout ---
     total_buttons = len(years_list) + 1  # including "All"
     buttons_per_row = 8
     num_rows = math.ceil(total_buttons / buttons_per_row)
@@ -26,7 +29,6 @@ def render_chart_page():
     right_width = max(right_width, 1)
     left_col, right_col = st.columns([left_width, right_width])
 
-    # --- Generate clickable HTML buttons ---
     with left_col:
         btn_idx = 0
         for row in range(num_rows):
@@ -34,7 +36,7 @@ def render_chart_page():
             cols = st.columns(cols_in_row, gap="small")
             for c in range(cols_in_row):
                 if btn_idx == 0:
-                    year_label = "All"
+                    year_label = "ALL"
                     selected = st.session_state.selected_year == "ALL"
                 else:
                     year_label = str(years_list[btn_idx - 1])
@@ -44,21 +46,17 @@ def render_chart_page():
                 bg_color = "#4CAF50" if selected else "#E0E0E0"
                 text_color = "#FFFFFF" if selected else "#000000"
 
-                # HTML button with JS to update Streamlit session
+                # HTML button
                 button_html = f"""
-                <button onclick="
-                    const streamlitEvent = new CustomEvent('streamlit:setComponentValue', {{
-                        detail: '{year_label}'
-                    }}); window.dispatchEvent(streamlitEvent);
-                " style='width:100%; padding:6px 12px; margin-bottom:4px; border:none; border-radius:6px;
-                        background-color:{bg_color}; color:{text_color}; cursor:pointer;'>{year_label}</button>
+                <button onclick="window.parent.postMessage({{isStreamlitMessage:true, type:'update', value:'{year_label}'}}, '*')"
+                        style='width:100%; padding:6px 12px; margin-bottom:4px; border:none; border-radius:6px;
+                               background-color:{bg_color}; color:{text_color}; cursor:pointer;'>{year_label}</button>
                 """
+                # Render button
+                cols[c].markdown(button_html, unsafe_allow_html=True)
 
-                # Use st.markdown to render HTML button
-                selected_value = cols[c].markdown(button_html, unsafe_allow_html=True)
-
-                # Update session_state when button clicked via st.text_input workaround
-                key = f"_hidden_input_{btn_idx}"
+                # Update selected year if clicked (simulate with Streamlit hidden input)
+                key = f"_hidden_year_{btn_idx}"
                 if key not in st.session_state:
                     st.session_state[key] = year_label
                 if st.session_state[key] != st.session_state.selected_year:
@@ -78,7 +76,7 @@ def render_chart_page():
     # --- Apply filters ---
     df_filtered = df_raw.copy()
     if selected_year != "ALL":
-        df_filtered = df_filtered[df_filtered["Year"] == selected_year]
+        df_filtered = df_filtered[df_filtered["Year"] == int(selected_year)]
     if items:
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
 
@@ -86,9 +84,10 @@ def render_chart_page():
     df_filtered = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]
 
     if df_filtered.empty:
-        st.warning("⚠️ No data after filtering.")
+        st.warning("⚠️ No data after filtering. Please check Year or Item selection.")
         return
 
+    # --- Absolute Quantity ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
     # --- Aggregate by Period ---
