@@ -19,14 +19,13 @@ def render_chart_page():
         st.session_state.selected_year = "ALL"
 
     total_buttons = len(years_list) + 1  # +1 for "All"
-    buttons_per_row = 8
+    buttons_per_row = 8  # max buttons per row
     num_rows = math.ceil(total_buttons / buttons_per_row)
 
-    # Dynamic column ratio to compress spacing
+    # --- Dynamic column ratio for buttons ---
     left_width = min(total_buttons, buttons_per_row) * 2
     right_width = 30 - left_width
     right_width = max(right_width, 1)
-
     left_col, right_col = st.columns([left_width, right_width])
 
     with left_col:
@@ -36,7 +35,6 @@ def render_chart_page():
             cols = st.columns(cols_in_row, gap="small")
             for c in range(cols_in_row):
                 if btn_idx == 0:
-                    # "All" button
                     if cols[c].button("✅ All"):
                         st.session_state.selected_year = "ALL"
                 else:
@@ -62,35 +60,31 @@ def render_chart_page():
         st.warning("⚠️ No data after filtering.")
         return
 
-    # --- Keep positive quantities ---
-    df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
-
-    # --- Ensure Period is integer ---
-    df_filtered["Period"] = pd.to_numeric(df_filtered["Period"], errors="coerce").fillna(0).astype(int)
-
-    # --- Filter by Rcv So Flag categories ---
+    # --- Keep only relevant Rcv So Flag categories ---
     df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
 
-    # --- Create Year-Period for display ---
-    df_filtered["YearPeriod"] = df_filtered["Year"].astype(str) + "-" + df_filtered["Period"].astype(str).str.zfill(2)
+    # --- Take absolute values for Quantity ---
+    df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
-    # --- Aggregation ---
+    # --- Aggregate correctly to avoid double-counting ---
     if selected_year == "ALL":
-        # Line chart by Period within each year
-        chart_df_line = df_filtered.groupby(["Year", "Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        chart_df_line = chart_df_line.sort_values(["Year", "Period"])
+        # Aggregate per Year-Period-Item-Rcv flag
+        df_grouped = df_filtered.groupby(["Year", "Period", "Item Code", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        # Line chart: sum by Year + Period + Rcv So Flag
+        chart_df_line = df_grouped.groupby(["Year", "Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_line["YearPeriod"] = chart_df_line["Year"].astype(str) + "-" + chart_df_line["Period"].astype(str).str.zfill(2)
-        
-        # Bar chart by Year
-        chart_df_bar = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        chart_df_line = chart_df_line.sort_values(["Year", "Period"])
+        # Bar chart: sum by Year + Rcv So Flag
+        chart_df_bar = df_grouped.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_bar = chart_df_bar.sort_values("Year")
     else:
-        # Both charts by Period
-        chart_df_line = df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        # Single year: aggregate per Period-Item-Rcv flag
+        df_grouped = df_filtered.groupby(["Period", "Item Code", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        chart_df_line = df_grouped.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_line = chart_df_line.sort_values("Period")
         chart_df_bar = chart_df_line.copy()
 
-    # --- Line chart ---
+    # --- Line Chart ---
     fig_line = px.line(
         chart_df_line,
         x="YearPeriod" if selected_year == "ALL" else "Period",
@@ -103,10 +97,10 @@ def render_chart_page():
         xaxis_title="Year-Period" if selected_year == "ALL" else "Period",
         yaxis_title="Quantity",
         template="plotly_white",
-        showlegend=False
+        showlegend=False  # hide legend
     )
 
-    # --- Bar chart ---
+    # --- Bar Chart ---
     fig_bar = px.bar(
         chart_df_bar,
         x="Year" if selected_year == "ALL" else "Period",
@@ -128,7 +122,7 @@ def render_chart_page():
         )
     )
 
-    # --- Display charts side by side ---
+    # --- Display side by side (60:40) ---
     col1, col2 = st.columns([60, 40])
     with col1:
         st.plotly_chart(fig_line, use_container_width=True)
