@@ -19,10 +19,10 @@ def render_chart_page():
         st.session_state.selected_year = "ALL"
 
     total_buttons = len(years_list) + 1  # +1 for "All"
-    buttons_per_row = 8  # max buttons per row
+    buttons_per_row = 8
     num_rows = math.ceil(total_buttons / buttons_per_row)
 
-    # --- Dynamic column ratio ---
+    # Dynamic column ratio to compress spacing
     left_width = min(total_buttons, buttons_per_row) * 2
     right_width = 30 - left_width
     right_width = max(right_width, 1)
@@ -36,6 +36,7 @@ def render_chart_page():
             cols = st.columns(cols_in_row, gap="small")
             for c in range(cols_in_row):
                 if btn_idx == 0:
+                    # "All" button
                     if cols[c].button("✅ All"):
                         st.session_state.selected_year = "ALL"
                 else:
@@ -45,10 +46,7 @@ def render_chart_page():
                 btn_idx += 1
 
     selected_year = st.session_state.selected_year
-    if selected_year == "ALL":
-        st.write("✅ Showing data for **All Years**")
-    else:
-        st.write(f"✅ Selected Year: **{selected_year}**")
+    st.write(f"✅ Showing data for **{selected_year}**" if selected_year != "ALL" else "✅ Showing data for **All Years**")
 
     # --- Item filter ---
     items = st.multiselect("Item Code", df_raw["Item Code"].unique())
@@ -64,38 +62,42 @@ def render_chart_page():
         st.warning("⚠️ No data after filtering.")
         return
 
-    # --- Take absolute values for Quantity[Unit1] ---
+    # --- Keep positive quantities ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
-    # --- Create Year-Period key ---
+    # --- Ensure Period is integer ---
+    df_filtered["Period"] = pd.to_numeric(df_filtered["Period"], errors="coerce").fillna(0).astype(int)
+
+    # --- Filter by Rcv So Flag categories ---
+    df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
+
+    # --- Create Year-Period for display ---
     df_filtered["YearPeriod"] = df_filtered["Year"].astype(str) + "-" + df_filtered["Period"].astype(str).str.zfill(2)
-    df_filtered["YearPeriod_dt"] = pd.to_datetime(df_filtered["YearPeriod"], format="%Y-%m")
 
-    # --- Aggregate depending on selection ---
+    # --- Aggregation ---
     if selected_year == "ALL":
-        # Line chart by Period
-        chart_df_line = df_filtered.groupby(["YearPeriod_dt", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        chart_df_line = chart_df_line.sort_values("YearPeriod_dt")
-
+        # Line chart by Period within each year
+        chart_df_line = df_filtered.groupby(["Year", "Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        chart_df_line = chart_df_line.sort_values(["Year", "Period"])
+        chart_df_line["YearPeriod"] = chart_df_line["Year"].astype(str) + "-" + chart_df_line["Period"].astype(str).str.zfill(2)
+        
         # Bar chart by Year
         chart_df_bar = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_bar = chart_df_bar.sort_values("Year")
     else:
         # Both charts by Period
-        chart_df_line = df_filtered.groupby(["Period", "Rcv So Flag", "YearPeriod"], as_index=False)["Quantity[Unit1]"].sum()
+        chart_df_line = df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_line = chart_df_line.sort_values("Period")
         chart_df_bar = chart_df_line.copy()
 
-    # --- Line Chart (no legend) ---
+    # --- Line chart ---
     fig_line = px.line(
         chart_df_line,
-        x="YearPeriod_dt" if selected_year == "ALL" else "Period",
+        x="YearPeriod" if selected_year == "ALL" else "Period",
         y="Quantity[Unit1]",
         color="Rcv So Flag",
         markers=True,
-        title="📈 Inventory Flow Over Time"
-            if selected_year == "ALL"
-            else f"📈 Inventory Flow Over Time ({selected_year})"
+        title="📈 Inventory Flow Over Time" if selected_year == "ALL" else f"📈 Inventory Flow Over Time ({selected_year})"
     )
     fig_line.update_layout(
         xaxis_title="Year-Period" if selected_year == "ALL" else "Period",
@@ -104,7 +106,7 @@ def render_chart_page():
         showlegend=False
     )
 
-    # --- Bar Chart (legend bottom) ---
+    # --- Bar chart ---
     fig_bar = px.bar(
         chart_df_bar,
         x="Year" if selected_year == "ALL" else "Period",
@@ -126,7 +128,7 @@ def render_chart_page():
         )
     )
 
-    # --- Display side by side (60:40) ---
+    # --- Display charts side by side ---
     col1, col2 = st.columns([60, 40])
     with col1:
         st.plotly_chart(fig_line, use_container_width=True)
