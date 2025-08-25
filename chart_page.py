@@ -79,44 +79,43 @@ def render_chart_page():
 
 
 
-    # --- Line Chart with 2 categories ---
-    fig_line = px.line(
-        chart_df,
-        x="Period",
-        y="Quantity[Unit1]",
-        color="Rcv So Flag",
-        markers=True,
-        title="📈 Inventory Flow Over Time"
-        if selected_year == "ALL"
-        else f"📈 Inventory Flow Over Time ({selected_year})"
-    )
-    fig_line.update_layout(
-        xaxis_title="Period",
-        yaxis_title="Quantity",
-        template="plotly_white",
-        legend_title="Category"
-    )
-    
-    # --- Bar Chart (total by category) ---
-    bar_df = chart_df.groupby("Rcv So Flag", as_index=False)["Quantity[Unit1]"].sum()
-    fig_bar = px.bar(
-        bar_df,
-        x="Rcv So Flag",
-        y="Quantity[Unit1]",
-        color="Rcv So Flag",
-        title="📊 Total by Category"
-    )
-    fig_bar.update_layout(
-        xaxis_title="Category",
-        yaxis_title="Total Quantity",
-        template="plotly_white",
-        showlegend=False
-    )
-    
-    # --- Display side by side ---
-    col1, col2 = st.columns([60, 40])
-    with col1:
-        st.plotly_chart(fig_line, use_container_width=True)
-    with col2:
-        st.plotly_chart(fig_bar, use_container_width=True)
+# --- Line Chart (2 categories) ---
+fig_line = px.line(
+    chart_df,
+    x="Period",
+    y="Quantity[Unit1]",
+    color="Rcv So Flag",
+    markers=True,
+    title="📈 Inventory Flow Over Time"
+    if selected_year == "ALL"
+    else f"📈 Inventory Flow Over Time ({selected_year})"
+)
+fig_line.update_layout(
+    xaxis_title="Period",
+    yaxis_title="Quantity",
+    template="plotly_white",
+    legend_title="Category"
+)
 
+# --- Bar Chart (grouped by Period + Category) ---
+fig_bar = px.bar(
+    chart_df,
+    x="Period",
+    y="Quantity[Unit1]",
+    color="Rcv So Flag",
+    barmode="group",  # side-by-side bars
+    title="📊 Inventory by Period and Category"
+)
+fig_bar.update_layout(
+    xaxis_title="Period",
+    yaxis_title="Quantity",
+    template="plotly_white",
+    legend_title="Category"
+)
+
+# --- Display side by side (60:40) ---
+col1, col2 = st.columns([60, 40])
+with col1:
+    st.plotly_chart(fig_line, use_container_width=True)
+with col2:
+    st.plotly_chart(fig_bar, use_container_width=True)
