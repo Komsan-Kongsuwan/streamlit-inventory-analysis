@@ -62,7 +62,7 @@ def render_chart_page():
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
 
     # --- Keep only Rcv(increase) ---
-    df_filtered = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]
+    #df_filtered = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]
 
     if df_filtered.empty:
         st.warning("⚠️ No data after filtering.")
@@ -75,7 +75,7 @@ def render_chart_page():
     chart_df = df_filtered.groupby(["Period"], as_index=False)["Quantity[Unit1]"].sum()
 
     # --- Line Chart ---
-    fig = px.line(
+    fig = px.bar(
         chart_df,
         x="Period",
         y="Quantity[Unit1]",
