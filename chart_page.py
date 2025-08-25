@@ -71,20 +71,24 @@ def render_chart_page():
         st.warning("⚠️ No data after filtering.")
         return
 
-    # --- Take absolute values for Quantity[Unit1] ---
+
+
+
+      # --- Take absolute values for Quantity[Unit1] ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
-
-    # --- Aggregate by Period ---
-    chart_df = df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-
-
-
-
-
+    
+    # --- Aggregate differently for ALL vs single year ---
+    if selected_year == "ALL":
+        chart_df = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        x_col = "Year"
+    else:
+        chart_df = df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        x_col = "Period"
+    
     # --- Line Chart (2 categories, no legend) ---
     fig_line = px.line(
         chart_df,
-        x="Period",
+        x=x_col,
         y="Quantity[Unit1]",
         color="Rcv So Flag",
         markers=True,
@@ -93,7 +97,7 @@ def render_chart_page():
         else f"📈 Inventory Flow Over Time ({selected_year})"
     )
     fig_line.update_layout(
-        xaxis_title="Period",
+        xaxis_title=x_col,
         yaxis_title="Quantity",
         template="plotly_white",
         showlegend=False   # 🔹 Hide legend
@@ -102,14 +106,14 @@ def render_chart_page():
     # --- Bar Chart (legend at bottom) ---
     fig_bar = px.bar(
         chart_df,
-        x="Period",
+        x=x_col,
         y="Quantity[Unit1]",
         color="Rcv So Flag",
         barmode="group",
-        title="📊 Inventory by Period and Category"
+        title="📊 Inventory by " + x_col + " and Category"
     )
     fig_bar.update_layout(
-        xaxis_title="Period",
+        xaxis_title=x_col,
         yaxis_title="Quantity",
         template="plotly_white",
         legend=dict(
@@ -120,11 +124,3 @@ def render_chart_page():
             x=0.5
         )
     )
-    
-    # --- Display side by side (60:40) ---
-    col1, col2 = st.columns([60, 40])
-    with col1:
-        st.plotly_chart(fig_line, use_container_width=True)
-    with col2:
-        st.plotly_chart(fig_bar, use_container_width=True)
-
