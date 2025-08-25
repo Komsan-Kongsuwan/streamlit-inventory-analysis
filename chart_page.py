@@ -19,13 +19,14 @@ def render_chart_page():
         st.session_state.selected_year = "ALL"
 
     total_buttons = len(years_list) + 1  # +1 for "All"
-    buttons_per_row = 8  # max buttons per row
+    buttons_per_row = 8
     num_rows = math.ceil(total_buttons / buttons_per_row)
 
-    # --- Dynamic column ratio for buttons ---
+    # --- Dynamic column ratio for button layout ---
     left_width = min(total_buttons, buttons_per_row) * 2
     right_width = 30 - left_width
     right_width = max(right_width, 1)
+
     left_col, right_col = st.columns([left_width, right_width])
 
     with left_col:
@@ -44,7 +45,7 @@ def render_chart_page():
                 btn_idx += 1
 
     selected_year = st.session_state.selected_year
-    st.write(f"✅ Showing data for **{selected_year}**" if selected_year != "ALL" else "✅ Showing data for **All Years**")
+    st.write(f"✅ Selected Year: **{selected_year}**" if selected_year != "ALL" else "✅ Showing data for **All Years**")
 
     # --- Item filter ---
     items = st.multiselect("Item Code", df_raw["Item Code"].unique())
@@ -60,39 +61,33 @@ def render_chart_page():
         st.warning("⚠️ No data after filtering.")
         return
 
-    # --- Keep only relevant Rcv So Flag categories ---
-    df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
-
-    # --- Take absolute values for Quantity ---
+    # --- Ensure Quantity is positive ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
-
-
-    # --- Ensure Period is integer for proper sorting ---
+    # --- Ensure Period is integer ---
     df_filtered['Period'] = df_filtered['Period'].astype(int)
-    
-    # --- Aggregate correctly to avoid double-counting ---
+
+    # --- Keep only Rcv(increase) and So(decrease) categories ---
+    df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
+
+    # --- Aggregation ---
     if selected_year == "ALL":
         df_grouped = df_filtered.groupby(["Year", "Period", "Item Code", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         
-        # Line chart: sum by Year + Period + Rcv So Flag
+        # Line chart: by Year + Period
         chart_df_line = df_grouped.groupby(["Year", "Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_line["YearPeriod"] = chart_df_line["Year"].astype(str) + "-" + chart_df_line["Period"].astype(str).str.zfill(2)
-        chart_df_line = chart_df_line.sort_values(["Year", "Period"])  # ✅ Sorted
-    
-        # Bar chart: sum by Year + Rcv So Flag
+        chart_df_line = chart_df_line.sort_values(["Year", "Period"])
+
+        # Bar chart: sum by Year
         chart_df_bar = df_grouped.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_bar = chart_df_bar.sort_values("Year")
     else:
-        # Single year: aggregate per Period-Item-Rcv flag
         df_grouped = df_filtered.groupby(["Period", "Item Code", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_line = df_grouped.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        chart_df_line = chart_df_line.sort_values("Period")  # ✅ Sorted
+        chart_df_line = chart_df_line.sort_values("Period")
         chart_df_bar = chart_df_line.copy()
 
-    
-
-    
     # --- Line Chart ---
     fig_line = px.line(
         chart_df_line,
@@ -106,7 +101,7 @@ def render_chart_page():
         xaxis_title="Year-Period" if selected_year == "ALL" else "Period",
         yaxis_title="Quantity",
         template="plotly_white",
-        showlegend=False  # hide legend
+        showlegend=False
     )
 
     # --- Bar Chart ---
@@ -131,7 +126,7 @@ def render_chart_page():
         )
     )
 
-    # --- Display side by side (60:40) ---
+    # --- Display charts side by side (60:40) ---
     col1, col2 = st.columns([60, 40])
     with col1:
         st.plotly_chart(fig_line, use_container_width=True)
