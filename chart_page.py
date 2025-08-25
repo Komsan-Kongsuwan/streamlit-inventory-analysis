@@ -84,6 +84,19 @@ def render_chart_page():
         chart_df_line = df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_bar = chart_df_line.copy()
 
+
+    # --- Apply aggregation depending on selection ---
+    if selected_year == "ALL":
+        chart_df_line = df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        chart_df_line = chart_df_line.sort_values("Period")
+    
+        chart_df_bar = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        chart_df_bar = chart_df_bar.sort_values("Year")
+    else:
+        chart_df_line = df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        chart_df_line = chart_df_line.sort_values("Period")
+        chart_df_bar = chart_df_line.copy()
+
     
     
     fig_line = px.line(
