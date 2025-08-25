@@ -4,77 +4,78 @@ import plotly.express as px
 import calendar
 
 def render_chart_page():
-    st.title("📊 Inventory Flow Quick Preview")
+    st.title("📊 Inventory Flow by Operation Date")
 
     if "official_data" not in st.session_state:
         st.warning("⚠️ No data found. Please upload files in the Data Loader page first.")
         return
 
     df_raw = st.session_state["official_data"].copy()
-    df_raw['Operation Date'] = pd.to_datetime(df_raw['Operation Date'], errors='coerce')
-    df_raw = df_raw.dropna(subset=['Operation Date'])
+    
+    # --- Sidebar Filters ---
+    st.sidebar.header("🔍 Filters")
 
-    st.sidebar.subheader("🔍 Filters")
-
-    # --- Year filter in sidebar ---
+    # Year filter
     years_list = sorted(df_raw["Year"].dropna().unique())
-    selected_year = st.sidebar.selectbox("Select Year", options=["ALL"] + years_list, index=0)
+    selected_year = st.sidebar.selectbox("Select Year", ["ALL"] + years_list, index=0)
 
-    # --- Filter by selected year ---
+    # Month filter as buttons (side-by-side)
+    selected_month = st.sidebar.session_state.get("selected_month", None)
+    month_cols = st.sidebar.columns(12, gap="small")
+    for i, m in enumerate(range(1, 13)):
+        if month_cols[i].button(calendar.month_abbr[m]):
+            selected_month = m
+            st.sidebar.session_state.selected_month = selected_month
+
+    # --- Item filter (main page) ---
+    items = st.multiselect("Item Code", df_raw["Item Code"].unique())
+
+    # --- Apply filters ---
     df_filtered = df_raw.copy()
     if selected_year != "ALL":
         df_filtered = df_filtered[df_filtered["Year"] == selected_year]
+    if selected_month:
+        df_filtered = df_filtered[df_filtered["Month"] == selected_month]
+    if items:
+        df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
 
     if df_filtered.empty:
         st.warning("⚠️ No data after filtering.")
         return
 
-    # --- Month filter as buttons with abbreviated month names ---
-    months_list = sorted(df_filtered["Operation Date"].dt.month.unique())
-    st.subheader("Select Month")
-    month_buttons = st.columns(len(months_list))
-    selected_month = None
-    for i, m in enumerate(months_list):
-        month_abbr = calendar.month_abbr[m]  # Abbreviated month name
-        if month_buttons[i].button(month_abbr):
-            selected_month = m
-
-    if selected_month:
-        df_filtered = df_filtered[df_filtered["Operation Date"].dt.month == selected_month]
-
-    if df_filtered.empty:
-        st.warning("⚠️ No data for selected month.")
-        return
-
-    # --- Item filter in main page ---
-    items = st.multiselect("Select Item Code", options=df_filtered["Item Code"].unique())
-    if items:
-        df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
-
-    if df_filtered.empty:
-        st.warning("⚠️ No data after item filter.")
-        return
-
-    # --- Keep only relevant categories ---
+    # Keep only relevant categories
     df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
-    # --- Aggregate by day ---
-    df_filtered["Day"] = df_filtered["Operation Date"].dt.day
-    chart_df = df_filtered.groupby(["Day", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-    chart_df = chart_df.sort_values("Day")
+    # --- Aggregate data for bar chart ---
+    if selected_month:
+        # Daily aggregation
+        chart_df = df_filtered.groupby(["Day", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        chart_df = chart_df.sort_values("Day")
+    else:
+        # Monthly aggregation
+        chart_df = df_filtered.groupby(["Month", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        chart_df = chart_df.sort_values("Month")
 
-    # --- Daily Bar Chart ---
+    # --- Chart title ---
+    if selected_month:
+        chart_title = f"📊 Daily Inventory in {selected_year}-{calendar.month_abbr[selected_month]}"
+        x_col = "Day"
+    else:
+        chart_title = f"📊 Inventory in {selected_year} by Month"
+        x_col = "Month"
+
+    # --- Bar Chart ---
     fig_bar = px.bar(
         chart_df,
-        x="Day",
+        x=x_col,
         y="Quantity[Unit1]",
         color="Rcv So Flag",
         barmode="group",
-        title=f"📊 Daily Inventory in {selected_year}-{calendar.month_abbr[selected_month]}"
+        title=chart_title
     )
     fig_bar.update_layout(
-        xaxis_title="Day",
+        xaxis_title=x_col,
         yaxis_title="Quantity",
         template="plotly_white",
         legend=dict(
