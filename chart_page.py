@@ -1,116 +1,109 @@
+# chart_page.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import calendar
 
 def render_chart_page():
-    st.title("📊 Inventory Flow by Operation Date")
+    st.title("📊 Inventory Visualization")
 
+    # --- Load data from session state ---
     if "official_data" not in st.session_state:
-        st.warning("⚠️ No data found. Please upload files in the Data Loader page first.")
+        st.warning("⚠️ Official data not loaded. Please upload data first.")
         return
+    df = st.session_state["official_data"]
 
-    df_raw = st.session_state["official_data"].copy()
+    # --- Extract Year / Month ---
+    df["Year"] = pd.to_datetime(df["Document Date"]).dt.year
+    df["Month"] = pd.to_datetime(df["Document Date"]).dt.month
+    df["Day"] = pd.to_datetime(df["Document Date"]).dt.day
 
     # --- Sidebar filters ---
-    years_list = sorted(df_raw["Year"].dropna().unique())
-    selected_year = st.sidebar.selectbox("Select Year", ["ALL"] + list(years_list), index=0)
+    st.sidebar.header("🔎 Filters")
 
-    months = list(range(1, 13))
-    selected_month = st.sidebar.radio(
-        "Select Month (optional)",
-        ["All"] + [calendar.month_abbr[m] for m in months],
-        index=0
-    )
-    selected_month_num = list(calendar.month_abbr).index(selected_month) if selected_month != "All" else None
+    # Year filter
+    years = sorted(df["Year"].unique())
+    year_options = ["ALL"] + years
+    selected_year = st.sidebar.selectbox("Select Year", year_options)
 
-    category_option = st.sidebar.radio(
-        "Select Category",
-        ["All", "Rcv(increase)", "So(decrese)"]
-    )
-    if category_option == "All":
-        category_filter = ["Rcv(increase)", "So(decrese)"]
+    # Month filter
+    if selected_year == "ALL":
+        month_options = ["ALL"]
     else:
-        category_filter = [category_option]
+        month_options = ["ALL"] + [calendar.month_abbr[m] for m in range(1, 13)]
+    selected_month = st.sidebar.selectbox("Select Month", month_options)
 
-    # --- Main page: Item filter ---
-    items = st.multiselect("Item Code", df_raw["Item Code"].unique())
+    # Category filter
+    cat_options = ["ALL", "Rcv increase", "So decrese"]
+    selected_cat = st.sidebar.selectbox("Select Category", cat_options)
 
     # --- Apply filters ---
-    df_filtered = df_raw.copy()
+    df_filtered = df.copy()
     if selected_year != "ALL":
         df_filtered = df_filtered[df_filtered["Year"] == selected_year]
-    if selected_month_num:
+    if selected_month != "ALL":
+        selected_month_num = list(calendar.month_abbr).index(selected_month)
         df_filtered = df_filtered[df_filtered["Month"] == selected_month_num]
-    if items:
-        df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
-    if category_filter:
-        df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(category_filter)]
-
-    if df_filtered.empty:
-        st.warning("⚠️ No data after filtering.")
-        return
-
-    df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
-
-    # --- Determine aggregation ---
-    if selected_month_num:
-        # Daily aggregation
-        if "Day" not in df_filtered.columns and "Operation Date" in df_filtered.columns:
-            df_filtered["Day"] = pd.to_datetime(df_filtered["Operation Date"]).dt.day
-        elif "Day" not in df_filtered.columns:
-            df_filtered["Day"] = 1  # fallback
-        x_col = "Day"
-        all_days = pd.DataFrame({"Day": list(range(1,32))})
-        chart_df = df_filtered.groupby([x_col, "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        chart_df = all_days.merge(chart_df, on="Day", how="left").fillna(0)
-        chart_df["DayLabel"] = chart_df["Day"].astype(str) + "th"
-        chart_df_wide = chart_df.pivot(index="DayLabel", columns="Rcv So Flag", values="Quantity[Unit1]").fillna(0).reset_index()
-        y_cols = chart_df_wide.columns[1:]
-        chart_title = f"📊 Daily Inventory in {selected_year}-{calendar.month_abbr[selected_month_num]}"
-        x_col = "DayLabel"
-    elif selected_year != "ALL":
-        # Monthly aggregation
-        x_col = "Month"
-        all_months = pd.DataFrame({"Month": list(range(1,13))})
-        chart_df = df_filtered.groupby([x_col, "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        chart_df = all_months.merge(chart_df, on="Month", how="left").fillna(0)
-        chart_df["MonthLabel"] = chart_df["Month"].apply(lambda m: calendar.month_abbr[m])
-        chart_df_wide = chart_df.pivot(index="MonthLabel", columns="Rcv So Flag", values="Quantity[Unit1]").fillna(0).reset_index()
-        y_cols = chart_df_wide.columns[1:]
-        chart_title = f"📊 Monthly Inventory in {selected_year}"
-        x_col = "MonthLabel"
     else:
-        # Yearly aggregation
-        x_col = "Year"
-        chart_df = df_filtered.groupby([x_col, "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        chart_df_wide = chart_df.pivot(index="Year", columns="Rcv So Flag", values="Quantity[Unit1]").fillna(0).reset_index()
-        y_cols = chart_df_wide.columns[1:]
-        chart_title = "📊 Inventory by Year"
+        selected_month_num = None
+    if selected_cat != "ALL":
+        df_filtered = df_filtered[df_filtered["Rcv So Flag"] == selected_cat]
 
-    # --- Bar chart ---
-    fig_bar = px.bar(
-        chart_df_wide,
-        x=x_col,
-        y=y_cols,
-        barmode="group",
-        title=chart_title
-    )
-    fig_bar.update_layout(
-        xaxis_title=x_col,
-        yaxis_title="Quantity",
-        template="plotly_white",
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=-0.3,
-            xanchor="center",
-            x=0.5
+    # --- Grouped Data ---
+    if selected_month_num:  # Daily
+        chart_df = df_filtered.groupby(["Day", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        # ensure all days exist
+        all_days = pd.DataFrame({"Day": range(1, 32)})
+        chart_df = all_days.merge(chart_df, on="Day", how="left").fillna(0)
+    elif selected_year != "ALL":  # Monthly
+        chart_df = df_filtered.groupby(["Month", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        # ensure all months exist
+        all_months = pd.DataFrame({"Month": range(1, 13)})
+        chart_df = all_months.merge(chart_df, on="Month", how="left").fillna(0)
+    else:  # Yearly
+        chart_df = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+
+    # --- Bar Chart ---
+    if selected_month_num:  # Daily
+        fig_bar = px.bar(
+            chart_df,
+            x="Day",
+            y="Quantity[Unit1]",
+            color="Rcv So Flag",
+            barmode="stack",
+            title=f"Daily Quantity in {selected_month} {selected_year}"
         )
-    )
+    elif selected_year != "ALL":  # Monthly
+        chart_df["MonthName"] = chart_df["Month"].apply(lambda x: calendar.month_abbr[x])
+        fig_bar = px.bar(
+            chart_df,
+            x="MonthName",
+            y="Quantity[Unit1]",
+            color="Rcv So Flag",
+            barmode="stack",
+            title=f"Monthly Quantity in {selected_year}"
+        )
+    else:  # Yearly
+        fig_bar = px.bar(
+            chart_df,
+            x="Year",
+            y="Quantity[Unit1]",
+            color="Rcv So Flag",
+            barmode="stack",
+            title="Yearly Quantity"
+        )
 
-    # --- Show chart and table ---
     st.plotly_chart(fig_bar, use_container_width=True)
 
-    st.subheader("📋 Data Table (same as chart)")
-    st.dataframe(chart_df_wide, use_container_width=True)
+    # --- Pivot Table ---
+    if selected_month_num:  # Daily pivot
+        table_df = chart_df.pivot(index="Rcv So Flag", columns="Day", values="Quantity[Unit1]").fillna(0).reset_index()
+    elif selected_year != "ALL":  # Monthly pivot
+        table_df = chart_df.pivot(index="Rcv So Flag", columns="Month", values="Quantity[Unit1]").fillna(0).reset_index()
+        # rename columns to month abbrev
+        table_df.columns = ["Rcv So Flag"] + [calendar.month_abbr[m] for m in table_df.columns[1:]]
+    else:  # Yearly pivot
+        table_df = chart_df.pivot(index="Rcv So Flag", columns="Year", values="Quantity[Unit1]").fillna(0).reset_index()
+
+    st.subheader("📋 Pivot Table")
+    st.dataframe(table_df, use_container_width=True)
