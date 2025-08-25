@@ -124,3 +124,10 @@ def render_chart_page():
             x=0.5
         )
     )
+
+   # --- Display side by side (60:40) ---
+    col1, col2 = st.columns([60, 40])
+    with col1:
+        st.plotly_chart(fig_line, use_container_width=True)
+    with col2:
+        st.plotly_chart(fig_bar, use_container_width=True)
