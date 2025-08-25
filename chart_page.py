@@ -11,13 +11,6 @@ def render_chart_page():
         return
 
     df_raw = st.session_state["official_data"].copy()
-
-    # --- Ensure Month and Week exist ---
-    if "Operation Date" in df_raw.columns:
-        df_raw["Operation Date"] = pd.to_datetime(df_raw["Operation Date"], errors="coerce")
-        df_raw["Month"] = df_raw["Operation Date"].dt.month
-        df_raw["Week"] = df_raw["Operation Date"].dt.isocalendar().week.astype(int)
-
     st.subheader("🔍 Filters")
 
     # --- Year buttons ---
@@ -25,13 +18,12 @@ def render_chart_page():
     if "selected_year" not in st.session_state:
         st.session_state.selected_year = "ALL"
 
-    total_buttons = len(years_list) + 1
+    total_buttons = len(years_list) + 1  # +1 for "All"
     buttons_per_row = 8
     num_rows = math.ceil(total_buttons / buttons_per_row)
 
     left_width = min(total_buttons, buttons_per_row) * 2
-    right_width = 30 - left_width
-    right_width = max(right_width, 1)
+    right_width = max(30 - left_width, 1)
     left_col, right_col = st.columns([left_width, right_width])
 
     with left_col:
@@ -50,12 +42,14 @@ def render_chart_page():
                 btn_idx += 1
 
     selected_year = st.session_state.selected_year
-    st.write(f"✅ Showing data for **{selected_year}**" if selected_year != "ALL" else "✅ Showing data for **All Years**")
+    st.write(
+        f"✅ Showing data for **{selected_year}**"
+        if selected_year != "ALL"
+        else "✅ Showing data for **All Years**"
+    )
 
-    # --- Filters ---
+    # --- Item filter ---
     items = st.multiselect("Item Code", df_raw["Item Code"].unique())
-    months = st.multiselect("Month", sorted(df_raw["Month"].dropna().unique()))
-    weeks = st.multiselect("Week", sorted(df_raw["Week"].dropna().unique()))
 
     # --- Apply filters ---
     df_filtered = df_raw.copy()
@@ -63,27 +57,25 @@ def render_chart_page():
         df_filtered = df_filtered[df_filtered["Year"] == selected_year]
     if items:
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
-    if months:
-        df_filtered = df_filtered[df_filtered["Month"].isin(months)]
-    if weeks:
-        df_filtered = df_filtered[df_filtered["Week"].isin(weeks)]
 
     if df_filtered.empty:
         st.warning("⚠️ No data after filtering.")
         return
 
-    # --- Keep only relevant Rcv So Flag categories ---
+    # --- Keep only relevant categories ---
     df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
-
-    # --- Take absolute values for Quantity ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
-    # --- Aggregate for Bar Chart ---
+    # --- Aggregate for bar chart only ---
     if selected_year == "ALL":
-        chart_df_bar = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        chart_df_bar = df_filtered.groupby(
+            ["Year", "Rcv So Flag"], as_index=False
+        )["Quantity[Unit1]"].sum()
         chart_df_bar = chart_df_bar.sort_values("Year")
     else:
-        chart_df_bar = df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        chart_df_bar = df_filtered.groupby(
+            ["Period", "Rcv So Flag"], as_index=False
+        )["Quantity[Unit1]"].sum()
         chart_df_bar = chart_df_bar.sort_values("Period")
 
     # --- Bar Chart ---
@@ -108,4 +100,5 @@ def render_chart_page():
         )
     )
 
+    # --- Display ---
     st.plotly_chart(fig_bar, use_container_width=True)
