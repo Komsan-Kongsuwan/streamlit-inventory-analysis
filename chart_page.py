@@ -73,17 +73,6 @@ def render_chart_page():
     # --- Create Year-Period key ---
     df_filtered["YearPeriod"] = df_filtered["Year"].astype(str) + "-" + df_filtered["Period"].astype(str).str.zfill(2)
     
-    if selected_year == "ALL":
-        # ✅ Line chart by Year-Period
-        chart_df_line = df_filtered.groupby(["YearPeriod", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        
-        # ✅ Bar chart by Year
-        chart_df_bar = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-    else:
-        # ✅ Both charts by Period
-        chart_df_line = df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        chart_df_bar = chart_df_line.copy()
-
 
     # --- Apply aggregation depending on selection ---
     if selected_year == "ALL":
