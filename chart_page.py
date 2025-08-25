@@ -10,7 +10,6 @@ def render_chart_page():
         return
 
     df_raw = st.session_state["official_data"].copy()
-    st.dataframe(df_raw)
 
     # --- Sidebar: Year filter ---
     years_list = sorted(df_raw["Year"].dropna().unique())
