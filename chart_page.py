@@ -24,7 +24,7 @@ def render_chart_page():
 
     # --- Dynamic column ratio ---
     left_width = min(total_buttons, buttons_per_row) * 2  # 2 units per button
-    right_width = 20 - left_width
+    right_width = 30 - left_width
     right_width = max(right_width, 1)  # prevent zero width
 
     left_col, right_col = st.columns([left_width, right_width])
@@ -37,7 +37,7 @@ def render_chart_page():
             for c in range(cols_in_row):
                 if btn_idx == 0:
                     # "All" button
-                    if cols[c].button("✅ All"):
+                    if cols[c].button("All"):
                         st.session_state.selected_year = "ALL"
                 else:
                     yr = years_list[btn_idx - 1]
