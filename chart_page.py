@@ -18,7 +18,7 @@ def render_chart_page():
         st.session_state.selected_year = "ALL"
 
     # --- Split page: left for buttons, right dummy to compress spacing ---
-    left_col, right_col = st.columns([5, 4])  # left narrow, right wider
+    left_col, right_col = st.columns([3, 2])  # left narrow, right wider
 
     with left_col:
         buttons_per_row = 8  # adjust max buttons per row
@@ -31,7 +31,7 @@ def render_chart_page():
             cols = st.columns(cols_in_row, gap="small")
             for c in range(cols_in_row):
                 if btn_idx == 0:
-                    if cols[c].button("All Year"):
+                    if cols[c].button("All"):
                         st.session_state.selected_year = "ALL"
                 else:
                     yr = years_list[btn_idx - 1]
