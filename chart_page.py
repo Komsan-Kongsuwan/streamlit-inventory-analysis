@@ -19,13 +19,11 @@ def render_chart_page():
         st.session_state.selected_year = "ALL"
 
     total_buttons = len(years_list) + 1  # +1 for "All"
-    buttons_per_row = 8  # max buttons per row
+    buttons_per_row = 8
     num_rows = math.ceil(total_buttons / buttons_per_row)
 
-    # --- Dynamic column ratio for buttons ---
     left_width = min(total_buttons, buttons_per_row) * 2
-    right_width = 30 - left_width
-    right_width = max(right_width, 1)
+    right_width = max(30 - left_width, 1)
     left_col, right_col = st.columns([left_width, right_width])
 
     with left_col:
@@ -44,7 +42,11 @@ def render_chart_page():
                 btn_idx += 1
 
     selected_year = st.session_state.selected_year
-    st.write(f"✅ Showing data for **{selected_year}**" if selected_year != "ALL" else "✅ Showing data for **All Years**")
+    st.write(
+        f"✅ Showing data for **{selected_year}**"
+        if selected_year != "ALL"
+        else "✅ Showing data for **All Years**"
+    )
 
     # --- Item filter ---
     items = st.multiselect("Item Code", df_raw["Item Code"].unique())
@@ -60,45 +62,21 @@ def render_chart_page():
         st.warning("⚠️ No data after filtering.")
         return
 
-    # --- Keep only relevant Rcv So Flag categories ---
+    # --- Keep only relevant categories ---
     df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
-
-    # --- Take absolute values for Quantity ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
-    # --- Aggregate correctly to avoid double-counting ---
+    # --- Aggregate for bar chart only ---
     if selected_year == "ALL":
-        # Aggregate per Year-Period-Item-Rcv flag
-        df_grouped = df_filtered.groupby(["Year", "Period", "Item Code", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        # Line chart: sum by Year + Period + Rcv So Flag
-        chart_df_line = df_grouped.groupby(["Year", "Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        chart_df_line["YearPeriod"] = chart_df_line["Year"].astype(str) + "-" + chart_df_line["Period"].astype(str).str.zfill(2)
-        chart_df_line = chart_df_line.sort_values(["Period"])
-        # Bar chart: sum by Year + Rcv So Flag
-        chart_df_bar = df_grouped.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        chart_df_bar = df_filtered.groupby(
+            ["Year", "Rcv So Flag"], as_index=False
+        )["Quantity[Unit1]"].sum()
         chart_df_bar = chart_df_bar.sort_values("Year")
     else:
-        # Single year: aggregate per Period-Item-Rcv flag
-        df_grouped = df_filtered.groupby(["Period", "Item Code", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        chart_df_line = df_grouped.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        chart_df_line = chart_df_line.sort_values("Period")
-        chart_df_bar = chart_df_line.copy()
-
-    # --- Line Chart ---
-    fig_line = px.line(
-        chart_df_line,
-        x="YearPeriod" if selected_year == "ALL" else "Period",
-        y="Quantity[Unit1]",
-        color="Rcv So Flag",
-        markers=True,
-        title="📈 Inventory Flow Over Time" if selected_year == "ALL" else f"📈 Inventory Flow Over Time ({selected_year})"
-    )
-    fig_line.update_layout(
-        xaxis_title="Year-Period" if selected_year == "ALL" else "Period",
-        yaxis_title="Quantity",
-        template="plotly_white",
-        showlegend=False  # hide legend
-    )
+        chart_df_bar = df_filtered.groupby(
+            ["Period", "Rcv So Flag"], as_index=False
+        )["Quantity[Unit1]"].sum()
+        chart_df_bar = chart_df_bar.sort_values("Period")
 
     # --- Bar Chart ---
     fig_bar = px.bar(
@@ -122,9 +100,5 @@ def render_chart_page():
         )
     )
 
-    # --- Display side by side (60:40) ---
-    col1, col2 = st.columns([60, 40])
-    with col1:
-        st.plotly_chart(fig_line, use_container_width=True)
-    with col2:
-        st.plotly_chart(fig_bar, use_container_width=True)
+    # --- Display ---
+    st.plotly_chart(fig_bar, use_container_width=True)
