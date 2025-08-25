@@ -18,6 +18,38 @@ def day_suffix(d):
         return f"{d}th"
 
 def render_chart_page():
+    # --- Reduce top and side margins/paddings of the page ---
+    st.markdown("""
+        <style>
+            .block-container {
+                padding-top: 1.5rem;
+                padding-left: 1rem;
+                padding-right: 1rem;
+                padding-bottom: 0rem;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <style>
+            /* Target only sidebar site buttons */
+            section[data-testid="stSidebar"] div.stButton > button {
+                font-size: 12px !important;
+                padding: 0.1rem 0.25rem !important;
+                height: auto !important;      /* let it shrink naturally */
+                min-height: 40px !important;  /* force smaller baseline */
+                border-radius: 6px !important;
+                line-height: 1.2px !important;
+            }
+    
+            /* Also shrink the <p> text inside */
+            section[data-testid="stSidebar"] div.stButton p {
+                font-size: 12px !important;
+                margin: 0 !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)    
+    
     st.title("📊 Inventory Flow by Operation Date")
 
     if "official_data" not in st.session_state:
