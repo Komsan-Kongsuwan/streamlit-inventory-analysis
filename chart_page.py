@@ -61,51 +61,49 @@ def render_chart_page():
     if items:
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
 
-
-
-
-
-    
-
     if df_filtered.empty:
         st.warning("⚠️ No data after filtering.")
         return
 
-
-
-
       # --- Take absolute values for Quantity[Unit1] ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
     
-    # --- Apply aggregation depending on selection ---
-    if selected_year == "ALL":
-        # ✅ Line chart by Period
-        chart_df_line = df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+
+
+    # --- Create Year-Period key ---
+    df_filtered["YearPeriod"] = df_filtered["Year"].astype(str) + "-" + df_filtered["Period"].astype(str).str.zfill(2)
     
+    if selected_year == "ALL":
+        # ✅ Line chart by Year-Period
+        chart_df_line = df_filtered.groupby(["YearPeriod", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        
         # ✅ Bar chart by Year
         chart_df_bar = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
     else:
         # ✅ Both charts by Period
         chart_df_line = df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_bar = chart_df_line.copy()
+
     
-    # --- Line Chart (Period only, no legend) ---
+    
     fig_line = px.line(
         chart_df_line,
-        x="Period",
+        x="YearPeriod" if selected_year == "ALL" else "Period",
         y="Quantity[Unit1]",
         color="Rcv So Flag",
         markers=True,
         title="📈 Inventory Flow Over Time"
-        if selected_year == "ALL"
-        else f"📈 Inventory Flow Over Time ({selected_year})"
+            if selected_year == "ALL"
+            else f"📈 Inventory Flow Over Time ({selected_year})"
     )
     fig_line.update_layout(
-        xaxis_title="Period",
+        xaxis_title="Year-Period" if selected_year == "ALL" else "Period",
         yaxis_title="Quantity",
         template="plotly_white",
         showlegend=False
     )
+
+    
     
     # --- Bar Chart (Year if ALL, else Period, legend bottom) ---
     fig_bar = px.bar(
