@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import calendar
 
 def render_chart_page():
@@ -55,40 +54,16 @@ def render_chart_page():
             df_filtered["Day"] = pd.to_datetime(df_filtered["Operation Date"]).dt.day
         elif "Day" not in df_filtered.columns:
             df_filtered["Day"] = 1  # fallback
-        chart_df = df_filtered.groupby(["Day", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        x_col = "Day"
-        chart_title = f"📈 Daily Inventory in {selected_year}-{calendar.month_abbr[selected_month_num]}"
+        table_df = df_filtered.groupby(["Day", "Rcv So Flag", "Item Code"], as_index=False)["Quantity[Unit1]"].sum()
+        table_title = f"📋 Daily Inventory in {selected_year}-{calendar.month_abbr[selected_month_num]}"
     elif selected_year != "ALL":
         # Monthly aggregation for selected year
-        chart_df = df_filtered.groupby(["Month", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        x_col = "Month"
-        chart_title = f"📈 Monthly Inventory in {selected_year}"
+        table_df = df_filtered.groupby(["Month", "Rcv So Flag", "Item Code"], as_index=False)["Quantity[Unit1]"].sum()
+        table_title = f"📋 Monthly Inventory in {selected_year}"
     else:
         # Yearly aggregation
-        chart_df = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        x_col = "Year"
-        chart_title = "📈 Inventory by Year"
+        table_df = df_filtered.groupby(["Year", "Rcv So Flag", "Item Code"], as_index=False)["Quantity[Unit1]"].sum()
+        table_title = "📋 Inventory by Year"
 
-    # --- Line Chart ---
-    fig_line = px.line(
-        chart_df,
-        x=x_col,
-        y="Quantity[Unit1]",
-        color="Rcv So Flag",
-        markers=True,
-        title=chart_title
-    )
-    fig_line.update_layout(
-        xaxis_title=x_col,
-        yaxis_title="Quantity",
-        template="plotly_white",
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=-0.3,
-            xanchor="center",
-            x=0.5
-        )
-    )
-
-    st.plotly_chart(fig_line, use_container_width=True)
+    st.subheader(table_title)
+    st.dataframe(table_df.sort_values(table_df.columns[0]))
