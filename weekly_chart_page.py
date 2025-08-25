@@ -1,10 +1,9 @@
-# weekly_page.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 
 def render_weekly_page():
-    st.title("📊 Inventory Flow by Week")
+    st.title("📊 Weekly Inventory Flow")
 
     if "official_data" not in st.session_state:
         st.warning("⚠️ No data found. Please upload files in the Data Loader page first.")
@@ -13,29 +12,19 @@ def render_weekly_page():
     df_raw = st.session_state["official_data"].copy()
 
     # --- Sidebar filters ---
-    st.sidebar.header("Filters")
+    st.sidebar.subheader("🔍 Filters")
 
-    # --- Year filter ---
+    # Year filter
     years_list = sorted(df_raw["Year"].dropna().unique())
-    selected_year = st.sidebar.selectbox("Select Year", ["ALL"] + years_list)
+    selected_year = st.sidebar.selectbox("Select Year", options=["ALL"] + years_list, index=0)
 
-    # --- Week filter (only if year selected) ---
-    if selected_year != "ALL":
-        df_year = df_raw[df_raw["Year"] == selected_year]
-        weeks_list = sorted(df_year["Week"].dropna().unique())
-        selected_week = st.sidebar.multiselect("Select Week(s)", weeks_list, default=weeks_list)
-    else:
-        selected_week = []
+    # Item Code filter
+    items = st.sidebar.multiselect("Select Item Code", options=df_raw["Item Code"].unique())
 
     # --- Apply filters ---
     df_filtered = df_raw.copy()
     if selected_year != "ALL":
         df_filtered = df_filtered[df_filtered["Year"] == selected_year]
-    if selected_week:
-        df_filtered = df_filtered[df_filtered["Week"].isin(selected_week)]
-
-    # --- Item filter ---
-    items = st.sidebar.multiselect("Item Code", df_filtered["Item Code"].unique())
     if items:
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
 
@@ -43,11 +32,20 @@ def render_weekly_page():
         st.warning("⚠️ No data after filtering.")
         return
 
-    # --- Keep only relevant Rcv So Flag categories ---
+    # --- Ensure date column is datetime ---
+    df_filtered['Operation Date'] = pd.to_datetime(df_filtered['Operation Date'], errors='coerce')
+
+    # Drop rows with invalid dates
+    df_filtered = df_filtered.dropna(subset=['Operation Date'])
+
+    # --- Create Week column (ISO week) ---
+    df_filtered['Week'] = df_filtered['Operation Date'].dt.isocalendar().week
+
+    # --- Keep only relevant categories ---
     df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
-    # --- Aggregate by Week ---
+    # --- Aggregate by Week + Category ---
     chart_df = df_filtered.groupby(["Week", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
     chart_df = chart_df.sort_values("Week")
 
@@ -58,7 +56,7 @@ def render_weekly_page():
         y="Quantity[Unit1]",
         color="Rcv So Flag",
         barmode="group",
-        title=f"📊 Inventory Flow by Week ({selected_year})" if selected_year != "ALL" else "📊 Inventory Flow by Week"
+        title=f"📊 Weekly Inventory Flow ({selected_year})" if selected_year != "ALL" else "📊 Weekly Inventory Flow (All Years)"
     )
     fig_bar.update_layout(
         xaxis_title="Week",
