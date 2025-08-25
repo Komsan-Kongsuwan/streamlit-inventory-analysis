@@ -68,21 +68,30 @@ def render_chart_page():
     # --- Take absolute values for Quantity[Unit1] ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
-    # --- Aggregate by Period ---
-    chart_df = df_filtered.groupby(["Period"], as_index=False)["Quantity[Unit1]"].sum()
 
-    # --- Bar Chart ---
+
+
+
+    # --- Aggregate by Period + Rcv So Flag ---
+    chart_df = (
+        df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"]
+        .sum()
+    )
+    
+    # --- Bar Chart with categories ---
     fig = px.bar(
         chart_df,
         x="Period",
         y="Quantity[Unit1]",
+        color="Rcv So Flag",       # separate bars by category
+        barmode="group",           # side-by-side bars
         text="Quantity[Unit1]",
         title="📊 Inventory Flow Over Time"
         if selected_year == "ALL"
         else f"📊 Inventory Flow Over Time ({selected_year})"
     )
     
-    fig.update_traces(texttemplate='%{text:.0f}', textposition='outside')  # show values on top of bars
+    fig.update_traces(texttemplate='%{text:.0f}', textposition='outside')
     fig.update_layout(
         xaxis_title="Period",
         yaxis_title="Quantity",
