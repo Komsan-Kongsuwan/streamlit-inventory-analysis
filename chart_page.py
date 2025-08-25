@@ -13,19 +13,18 @@ def render_chart_page():
     df_raw = st.session_state["official_data"].copy()
     st.subheader("🔍 Filters")
 
-    # --- Year buttons ---
     years_list = sorted(df_raw["Year"].dropna().unique())
     if "selected_year" not in st.session_state:
         st.session_state.selected_year = "ALL"
 
     total_buttons = len(years_list) + 1  # +1 for "All"
-    buttons_per_row = 8  # max buttons per row
+    buttons_per_row = 8
     num_rows = math.ceil(total_buttons / buttons_per_row)
 
-    # --- Dynamic column ratio ---
-    left_width = min(total_buttons, buttons_per_row) * 2  # 2 units per button
-    right_width = 30 - left_width
-    right_width = max(right_width, 1)  # prevent zero width
+    # Dynamic left/right column ratio
+    left_width = min(total_buttons, buttons_per_row) * 2
+    right_width = 20 - left_width
+    right_width = max(right_width, 1)
 
     left_col, right_col = st.columns([left_width, right_width])
 
@@ -36,12 +35,13 @@ def render_chart_page():
             cols = st.columns(cols_in_row, gap="small")
             for c in range(cols_in_row):
                 if btn_idx == 0:
-                    # "All" button
-                    if cols[c].button("✅ All"):
+                    label = "✅ All" if st.session_state.selected_year == "ALL" else "All"
+                    if cols[c].button(label):
                         st.session_state.selected_year = "ALL"
                 else:
                     yr = years_list[btn_idx - 1]
-                    if cols[c].button(str(yr)):
+                    label = f"✅ {yr}" if st.session_state.selected_year == yr else str(yr)
+                    if cols[c].button(label):
                         st.session_state.selected_year = yr
                 btn_idx += 1
 
@@ -51,30 +51,27 @@ def render_chart_page():
     else:
         st.write(f"✅ Selected Year: **{selected_year}**")
 
-    # --- Item filter ---
+    # Item filter
     items = st.multiselect("Item Code", df_raw["Item Code"].unique())
 
-    # --- Apply filters ---
+    # Apply filters
     df_filtered = df_raw.copy()
     if selected_year != "ALL":
         df_filtered = df_filtered[df_filtered["Year"] == selected_year]
     if items:
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
 
-    # --- Keep only Rcv(increase) ---
+    # Keep only Rcv(increase)
     df_filtered = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]
 
     if df_filtered.empty:
         st.warning("⚠️ No data after filtering.")
         return
 
-    # --- Take absolute values for Quantity[Unit1] ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
-    # --- Aggregate by Period ---
     chart_df = df_filtered.groupby(["Period"], as_index=False)["Quantity[Unit1]"].sum()
 
-    # --- Line Chart ---
     fig = px.line(
         chart_df,
         x="Period",
