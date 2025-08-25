@@ -77,18 +77,22 @@ def render_chart_page():
       # --- Take absolute values for Quantity[Unit1] ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
     
-    # --- Aggregate differently for ALL vs single year ---
+    # --- Apply aggregation depending on selection ---
     if selected_year == "ALL":
-        chart_df = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        x_col = "Year"
-    else:
-        chart_df = df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        x_col = "Period"
+        # ✅ Line chart by Period
+        chart_df_line = df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
     
-    # --- Line Chart (2 categories, no legend) ---
+        # ✅ Bar chart by Year
+        chart_df_bar = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+    else:
+        # ✅ Both charts by Period
+        chart_df_line = df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        chart_df_bar = chart_df_line.copy()
+    
+    # --- Line Chart (Period only, no legend) ---
     fig_line = px.line(
-        chart_df,
-        x=x_col,
+        chart_df_line,
+        x="Period",
         y="Quantity[Unit1]",
         color="Rcv So Flag",
         markers=True,
@@ -97,35 +101,35 @@ def render_chart_page():
         else f"📈 Inventory Flow Over Time ({selected_year})"
     )
     fig_line.update_layout(
-        xaxis_title=x_col,
+        xaxis_title="Period",
         yaxis_title="Quantity",
         template="plotly_white",
-        showlegend=False   # 🔹 Hide legend
+        showlegend=False
     )
     
-    # --- Bar Chart (legend at bottom) ---
+    # --- Bar Chart (Year if ALL, else Period, legend bottom) ---
     fig_bar = px.bar(
-        chart_df,
-        x=x_col,
+        chart_df_bar,
+        x="Year" if selected_year == "ALL" else "Period",
         y="Quantity[Unit1]",
         color="Rcv So Flag",
         barmode="group",
-        title="📊 Inventory by " + x_col + " and Category"
+        title="📊 Inventory by " + ("Year" if selected_year == "ALL" else "Period and Category")
     )
     fig_bar.update_layout(
-        xaxis_title=x_col,
+        xaxis_title="Year" if selected_year == "ALL" else "Period",
         yaxis_title="Quantity",
         template="plotly_white",
         legend=dict(
-            orientation="h",        # 🔹 horizontal
+            orientation="h",
             yanchor="bottom",
-            y=-0.3,                 # 🔹 move below chart
+            y=-0.3,
             xanchor="center",
             x=0.5
         )
     )
-
-   # --- Display side by side (60:40) ---
+    
+    # --- Display side by side (60:40) ---
     col1, col2 = st.columns([60, 40])
     with col1:
         st.plotly_chart(fig_line, use_container_width=True)
