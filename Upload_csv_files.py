@@ -94,7 +94,7 @@ def render_data_loader():
         return
 
     # 👉 Save to session for Chart page
-    st.session_state["official_data"] = df_raw
+    st.session_state["official_data"] = df_pivot
 
     st.subheader("📊 Preview of Uploaded Data")
     st.dataframe(df_raw.head(20))
