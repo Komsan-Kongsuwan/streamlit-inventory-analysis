@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import math
 
 def render_chart_page():
     st.title("📊 Inventory Flow by Operation Date")
@@ -11,45 +10,23 @@ def render_chart_page():
         return
 
     df_raw = st.session_state["official_data"].copy()
-    st.subheader("🔍 Filters")
 
-    # --- Year buttons ---
+    # --- Sidebar Year filter ---
     years_list = sorted(df_raw["Year"].dropna().unique())
-    if "selected_year" not in st.session_state:
-        st.session_state.selected_year = "ALL"
+    selected_year = st.sidebar.radio(
+        "Select Year",
+        options=["ALL"] + years_list,
+        index=0
+    )
 
-    total_buttons = len(years_list) + 1  # +1 for "All"
-    buttons_per_row = 8
-    num_rows = math.ceil(total_buttons / buttons_per_row)
+    # --- Item filter in main page ---
+    items = st.multiselect("Item Code", df_raw["Item Code"].unique())
 
-    left_width = min(total_buttons, buttons_per_row) * 2
-    right_width = max(30 - left_width, 1)
-    left_col, right_col = st.columns([left_width, right_width])
-
-    with left_col:
-        btn_idx = 0
-        for row in range(num_rows):
-            cols_in_row = min(buttons_per_row, total_buttons - btn_idx)
-            cols = st.columns(cols_in_row, gap="small")
-            for c in range(cols_in_row):
-                if btn_idx == 0:
-                    if cols[c].button("✅ All"):
-                        st.session_state.selected_year = "ALL"
-                else:
-                    yr = years_list[btn_idx - 1]
-                    if cols[c].button(str(yr)):
-                        st.session_state.selected_year = yr
-                btn_idx += 1
-
-    selected_year = st.session_state.selected_year
     st.write(
         f"✅ Showing data for **{selected_year}**"
         if selected_year != "ALL"
         else "✅ Showing data for **All Years**"
     )
-
-    # --- Item filter ---
-    items = st.multiselect("Item Code", df_raw["Item Code"].unique())
 
     # --- Apply filters ---
     df_filtered = df_raw.copy()
@@ -66,7 +43,7 @@ def render_chart_page():
     df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
-    # --- Aggregate for bar chart only ---
+    # --- Aggregate for bar chart ---
     if selected_year == "ALL":
         chart_df_bar = df_filtered.groupby(
             ["Year", "Rcv So Flag"], as_index=False
@@ -100,5 +77,4 @@ def render_chart_page():
         )
     )
 
-    # --- Display ---
     st.plotly_chart(fig_bar, use_container_width=True)
