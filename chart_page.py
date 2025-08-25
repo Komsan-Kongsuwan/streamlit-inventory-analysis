@@ -75,7 +75,7 @@ def render_chart_page():
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
     # --- Aggregate by Period ---
-    chart_df = df_filtered.groupby(["Period"], as_index=False)["Quantity[Unit1]"].sum()
+    chart_df = df_filtered.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
 
     # --- Line Chart ---
     fig = px.line(
