@@ -79,7 +79,7 @@ def render_chart_page():
     )
     
     # --- Bar Chart with categories ---
-    fig = px.bar(
+    fig = px.line(
         chart_df,
         x="Period",
         y="Quantity[Unit1]",
