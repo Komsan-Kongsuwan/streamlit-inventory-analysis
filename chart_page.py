@@ -66,14 +66,20 @@ def render_chart_page():
     # --- Take absolute values for Quantity ---
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
+
+
+    # --- Ensure Period is integer for proper sorting ---
+    df_filtered['Period'] = df_filtered['Period'].astype(int)
+    
     # --- Aggregate correctly to avoid double-counting ---
     if selected_year == "ALL":
-        # Aggregate per Year-Period-Item-Rcv flag
         df_grouped = df_filtered.groupby(["Year", "Period", "Item Code", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
+        
         # Line chart: sum by Year + Period + Rcv So Flag
         chart_df_line = df_grouped.groupby(["Year", "Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_line["YearPeriod"] = chart_df_line["Year"].astype(str) + "-" + chart_df_line["Period"].astype(str).str.zfill(2)
-        chart_df_line = chart_df_line.sort_values(["Year", "Period"])
+        chart_df_line = chart_df_line.sort_values(["Year", "Period"])  # ✅ Sorted
+    
         # Bar chart: sum by Year + Rcv So Flag
         chart_df_bar = df_grouped.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_bar = chart_df_bar.sort_values("Year")
@@ -81,9 +87,12 @@ def render_chart_page():
         # Single year: aggregate per Period-Item-Rcv flag
         df_grouped = df_filtered.groupby(["Period", "Item Code", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
         chart_df_line = df_grouped.groupby(["Period", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        chart_df_line = chart_df_line.sort_values("Period")
+        chart_df_line = chart_df_line.sort_values("Period")  # ✅ Sorted
         chart_df_bar = chart_df_line.copy()
 
+    
+
+    
     # --- Line Chart ---
     fig_line = px.line(
         chart_df_line,
