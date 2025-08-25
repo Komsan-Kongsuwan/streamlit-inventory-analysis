@@ -14,9 +14,9 @@ def render_chart_page():
     df = st.session_state["official_data"]
 
     # --- Extract Year / Month ---
-    df["Year"] = pd.to_datetime(df["Document Date"]).dt.year
-    df["Month"] = pd.to_datetime(df["Document Date"]).dt.month
-    df["Day"] = pd.to_datetime(df["Document Date"]).dt.day
+    df["Year"] = pd.to_datetime(df["Operation Date"]).dt.year
+    df["Month"] = pd.to_datetime(df["Operation Date"]).dt.month
+    df["Day"] = pd.to_datetime(df["Operation Date"]).dt.day
 
     # --- Sidebar filters ---
     st.sidebar.header("🔎 Filters")
