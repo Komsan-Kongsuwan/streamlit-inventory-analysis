@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import math
 import calendar
 
 def render_chart_page():
@@ -25,7 +24,6 @@ def render_chart_page():
         index=0
     )
     if selected_month != "All":
-        # Convert month abbreviation to number
         selected_month_num = list(calendar.month_abbr).index(selected_month)
     else:
         selected_month_num = None
@@ -58,30 +56,30 @@ def render_chart_page():
         elif "Day" not in df_filtered.columns:
             df_filtered["Day"] = 1  # fallback
         chart_df = df_filtered.groupby(["Day", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        x_col = "Day"
+        chart_df["x_label"] = chart_df["Day"].astype(str)  # Display day number
         chart_title = f"📊 Daily Inventory in {selected_year}-{calendar.month_abbr[selected_month_num]}"
     elif selected_year != "ALL":
-        # Monthly aggregation for selected year
+        # Monthly aggregation
         chart_df = df_filtered.groupby(["Month", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        x_col = "Month"
+        chart_df["x_label"] = chart_df["Month"].apply(lambda m: calendar.month_abbr[m])
         chart_title = f"📊 Monthly Inventory in {selected_year}"
     else:
         # Yearly aggregation
         chart_df = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        x_col = "Year"
+        chart_df["x_label"] = chart_df["Year"].astype(str)
         chart_title = "📊 Inventory by Year"
 
     # --- Bar chart ---
     fig_bar = px.bar(
         chart_df,
-        x=x_col,
+        x="x_label",
         y="Quantity[Unit1]",
         color="Rcv So Flag",
         barmode="group",
         title=chart_title
     )
     fig_bar.update_layout(
-        xaxis_title=x_col,
+        xaxis_title="",
         yaxis_title="Quantity",
         template="plotly_white",
         legend=dict(
