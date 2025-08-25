@@ -82,6 +82,7 @@ def render_chart_page():
         chart_df,
         x="Period",
         y="Quantity[Unit1]",
+        color="Rcv So Flag",    # 👈 separate lines for each category
         markers=True,
         title="📈 Inventory Flow Over Time"
         if selected_year == "ALL"
