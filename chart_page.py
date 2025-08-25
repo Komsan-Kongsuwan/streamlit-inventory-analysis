@@ -29,14 +29,14 @@ def render_chart_page():
         st.warning("⚠️ No data after filtering.")
         return
 
-    # --- Month filter as buttons with month names ---
+    # --- Month filter as buttons with abbreviated month names ---
     months_list = sorted(df_filtered["Operation Date"].dt.month.unique())
     st.subheader("Select Month")
     month_buttons = st.columns(len(months_list))
     selected_month = None
     for i, m in enumerate(months_list):
-        month_name = calendar.month_name[m]  # Convert number to name
-        if month_buttons[i].button(month_name):
+        month_abbr = calendar.month_abbr[m]  # Abbreviated month name
+        if month_buttons[i].button(month_abbr):
             selected_month = m
 
     if selected_month:
@@ -71,7 +71,7 @@ def render_chart_page():
         y="Quantity[Unit1]",
         color="Rcv So Flag",
         barmode="group",
-        title=f"📊 Daily Inventory in {selected_year}-{calendar.month_name[selected_month]}"
+        title=f"📊 Daily Inventory in {selected_year}-{calendar.month_abbr[selected_month]}"
     )
     fig_bar.update_layout(
         xaxis_title="Day",
