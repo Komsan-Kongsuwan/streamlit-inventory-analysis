@@ -17,49 +17,52 @@ def render_chart_page():
     if "selected_year" not in st.session_state:
         st.session_state.selected_year = "ALL"
 
-    total_buttons = len(years_list) + 1  # +1 for "All"
+    # --- Button layout parameters ---
+    total_buttons = len(years_list) + 1  # including "All"
     buttons_per_row = 8
     num_rows = math.ceil(total_buttons / buttons_per_row)
-
-    # Dynamic left/right column ratio
     left_width = min(total_buttons, buttons_per_row) * 2
     right_width = 20 - left_width
     right_width = max(right_width, 1)
-
     left_col, right_col = st.columns([left_width, right_width])
 
+    # --- Generate clickable HTML buttons ---
     with left_col:
         btn_idx = 0
         for row in range(num_rows):
             cols_in_row = min(buttons_per_row, total_buttons - btn_idx)
             cols = st.columns(cols_in_row, gap="small")
             for c in range(cols_in_row):
-                # Determine label and background color
                 if btn_idx == 0:
                     year_label = "All"
-                    is_selected = st.session_state.selected_year == "ALL"
+                    selected = st.session_state.selected_year == "ALL"
                 else:
                     year_label = str(years_list[btn_idx - 1])
-                    is_selected = st.session_state.selected_year == years_list[btn_idx - 1]
+                    selected = st.session_state.selected_year == years_list[btn_idx - 1]
 
-                bg_color = "#4CAF50" if is_selected else "#E0E0E0"  # green if selected, light gray if not
-                text_color = "#FFFFFF" if is_selected else "#000000"
+                # Button color
+                bg_color = "#4CAF50" if selected else "#E0E0E0"
+                text_color = "#FFFFFF" if selected else "#000000"
 
-                # Create HTML button
+                # HTML button with JS to update Streamlit session
                 button_html = f"""
-                <div style='text-align:center; margin-bottom:4px'>
-                    <button style='background-color:{bg_color}; color:{text_color};
-                                   border:none; padding:6px 12px; border-radius:6px; width:100%; cursor:pointer;'>
-                        {year_label}
-                    </button>
-                </div>
+                <button onclick="
+                    const streamlitEvent = new CustomEvent('streamlit:setComponentValue', {{
+                        detail: '{year_label}'
+                    }}); window.dispatchEvent(streamlitEvent);
+                " style='width:100%; padding:6px 12px; margin-bottom:4px; border:none; border-radius:6px;
+                        background-color:{bg_color}; color:{text_color}; cursor:pointer;'>{year_label}</button>
                 """
 
-                if cols[c].button(year_label) or st.markdown(button_html, unsafe_allow_html=True):
-                    if btn_idx == 0:
-                        st.session_state.selected_year = "ALL"
-                    else:
-                        st.session_state.selected_year = years_list[btn_idx - 1]
+                # Use st.markdown to render HTML button
+                selected_value = cols[c].markdown(button_html, unsafe_allow_html=True)
+
+                # Update session_state when button clicked via st.text_input workaround
+                key = f"_hidden_input_{btn_idx}"
+                if key not in st.session_state:
+                    st.session_state[key] = year_label
+                if st.session_state[key] != st.session_state.selected_year:
+                    st.session_state.selected_year = st.session_state[key]
 
                 btn_idx += 1
 
@@ -69,17 +72,17 @@ def render_chart_page():
     else:
         st.write(f"✅ Selected Year: **{selected_year}**")
 
-    # Item filter
+    # --- Item filter ---
     items = st.multiselect("Item Code", df_raw["Item Code"].unique())
 
-    # Apply filters
+    # --- Apply filters ---
     df_filtered = df_raw.copy()
     if selected_year != "ALL":
         df_filtered = df_filtered[df_filtered["Year"] == selected_year]
     if items:
         df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
 
-    # Keep only Rcv(increase)
+    # --- Keep only Rcv(increase) ---
     df_filtered = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]
 
     if df_filtered.empty:
@@ -88,8 +91,10 @@ def render_chart_page():
 
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
+    # --- Aggregate by Period ---
     chart_df = df_filtered.groupby(["Period"], as_index=False)["Quantity[Unit1]"].sum()
 
+    # --- Line Chart ---
     fig = px.line(
         chart_df,
         x="Period",
