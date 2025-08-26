@@ -34,7 +34,7 @@ def render_chart_page():
     """, unsafe_allow_html=True)
 
     # --- Page Title ---
-    st.markdown("<h2 style='text-align:left; font-size:28px;'>📊 Receive-Ship Visualization (4)</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align:left; font-size:28px;'>📊 Receive-Ship Visualization (5)</h2>", unsafe_allow_html=True)
 
     if "official_data" not in st.session_state:
         st.warning("⚠️ No data found. Please upload files in the Data Loader page first.")
