@@ -148,6 +148,37 @@ def render_chart_page():
     amount_rcv = df_filtered[df_filtered["Rcv So Flag"]=="Rcv(increase)"]["Quantity[Unit1]"].sum()
     amount_so = df_filtered[df_filtered["Rcv So Flag"]=="So(decrese)"]["Quantity[Unit1]"].sum()
 
+
+    
+    # Custom CSS for st.metric
+    st.markdown(
+        """
+        <style>
+        /* Reduce space inside metric card */
+        [data-testid="stMetric"] {
+            padding: 0.25rem 0.5rem;   /* reduce padding */
+            min-height: 60px;          /* lower the height */
+        }
+    
+        /* Change label style */
+        [data-testid="stMetricLabel"] {
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            color: #333333;
+        }
+    
+        /* Change value style */
+        [data-testid="stMetricValue"] {
+            font-size: 20px !important;
+            font-weight: 700 !important;
+            color: #0055aa;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    
     # --- Display compact info cards in one row at bottom ---
     cols = st.columns(9)
     with cols[0]: st.metric("Total Items", total_item_codes)
