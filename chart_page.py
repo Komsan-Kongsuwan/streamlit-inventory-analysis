@@ -149,7 +149,6 @@ def render_chart_page():
     amount_so = df_filtered[df_filtered["Rcv So Flag"]=="So(decrese)"]["Quantity[Unit1]"].sum()
 
     # --- Display compact info cards in one row at bottom ---
-    st.markdown("### 📦 Inventory Information")
     cols = st.columns(9)
     with cols[0]: st.metric("Total Items", total_item_codes)
     with cols[1]: st.metric("Movement", movement_items)
