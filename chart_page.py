@@ -103,8 +103,11 @@ def render_chart_page():
         yaxis_title="Quantity",
         template="plotly_white",
         legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
-        margin=dict(l=0, r=0, t=50, b=0)  # remove extra top/bottom margin
+        margin=dict(l=0, r=0, t=50, b=0)  # remove extra top/bottom margin,
+        legend_title_text=""  # 👈 remove legend title
     )
+    
+    
     st.plotly_chart(fig_bar, use_container_width=True)
 
     # ==========================================================
