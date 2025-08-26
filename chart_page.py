@@ -4,7 +4,6 @@ import plotly.express as px
 import calendar
 
 def day_suffix(d):
-    """Return day with suffix like 1st, 2nd, 3rd, 4th ..."""
     if 11 <= d <= 13:
         return f"{d}th"
     last_digit = d % 10
@@ -73,55 +72,6 @@ def render_chart_page():
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
     # ==========================================================
-    # 📌 INFO BOXES
-    # ==========================================================
-    # Latest 12 months
-    df_raw['YearMonth'] = df_raw['Year']*100 + df_raw['Month']
-    last_12_months = sorted(df_raw['YearMonth'].unique())[-12:]
-    df_last12 = df_raw[df_raw['YearMonth'].isin(last_12_months)]
-
-    active_items = df_last12[df_last12["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]["Item Code"].unique()
-    total_item_codes = df_raw["Item Code"].nunique()
-    movement_items = len(active_items)
-    non_movement_items = total_item_codes - movement_items
-
-    # New items in selected period
-    if selected_year != "ALL":
-        prev_data = df_raw[df_raw["Year"] < selected_year]
-        if selected_month_num:
-            prev_data = pd.concat([
-                prev_data,
-                df_raw[(df_raw["Year"] == selected_year) & (df_raw["Month"] < selected_month_num)]
-            ])
-        prev_items = set(prev_data["Item Code"].unique())
-        new_item_codes = len(set(df_filtered["Item Code"].unique()) - prev_items)
-    else:
-        new_item_codes = 0
-
-    # Days and item codes by Rcv/So
-    day_rcv = df_filtered[df_filtered["Rcv So Flag"]=="Rcv(increase)"]["Operation Date"].dt.date.nunique()
-    day_so = df_filtered[df_filtered["Rcv So Flag"]=="So(decrese)"]["Operation Date"].dt.date.nunique()
-    item_rcv = df_filtered[df_filtered["Rcv So Flag"]=="Rcv(increase)"]["Item Code"].nunique()
-    item_so = df_filtered[df_filtered["Rcv So Flag"]=="So(decrese)"]["Item Code"].nunique()
-    amount_rcv = df_filtered[df_filtered["Rcv So Flag"]=="Rcv(increase)"]["Quantity[Unit1]"].sum()
-    amount_so = df_filtered[df_filtered["Rcv So Flag"]=="So(decrese)"]["Quantity[Unit1]"].sum()
-
-    # --- Display compact info cards in one row ---
-    st.subheader("📦 Inventory Information")
-    cols = st.columns(9)
-    with cols[0]: st.metric("Total Items", total_item_codes)
-    with cols[1]: st.metric("Movement", movement_items)
-    with cols[2]: st.metric("Non-Movement", non_movement_items)
-    with cols[3]: st.metric("New Items", new_item_codes)
-    with cols[4]: st.metric("Days with Rcv", day_rcv)
-    with cols[5]: st.metric("Days with So", day_so)
-    with cols[6]: st.metric("Item Codes Rcv", item_rcv)
-    with cols[7]: st.metric("Item Codes So", item_so)
-    with cols[8]: st.metric("Amount Rcv/So", f"{amount_rcv:.0f}/{amount_so:.0f}")
-
-    st.markdown("---")
-
-    # ==========================================================
     # 📊 CHART
     # ==========================================================
     if selected_month_num:
@@ -152,3 +102,48 @@ def render_chart_page():
         legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
     )
     st.plotly_chart(fig_bar, use_container_width=True)
+
+    # ==========================================================
+    # 📌 INFO BOXES (MOVED TO BOTTOM)
+    # ==========================================================
+    df_raw['YearMonth'] = df_raw['Year']*100 + df_raw['Month']
+    last_12_months = sorted(df_raw['YearMonth'].unique())[-12:]
+    df_last12 = df_raw[df_raw['YearMonth'].isin(last_12_months)]
+    active_items = df_last12[df_last12["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]["Item Code"].unique()
+    total_item_codes = df_raw["Item Code"].nunique()
+    movement_items = len(active_items)
+    non_movement_items = total_item_codes - movement_items
+
+    # New items in selected period
+    if selected_year != "ALL":
+        prev_data = df_raw[df_raw["Year"] < selected_year]
+        if selected_month_num:
+            prev_data = pd.concat([
+                prev_data,
+                df_raw[(df_raw["Year"] == selected_year) & (df_raw["Month"] < selected_month_num)]
+            ])
+        prev_items = set(prev_data["Item Code"].unique())
+        new_item_codes = len(set(df_filtered["Item Code"].unique()) - prev_items)
+    else:
+        new_item_codes = 0
+
+    # Days and item codes by Rcv/So
+    day_rcv = df_filtered[df_filtered["Rcv So Flag"]=="Rcv(increase)"]["Operation Date"].dt.date.nunique()
+    day_so = df_filtered[df_filtered["Rcv So Flag"]=="So(decrese)"]["Operation Date"].dt.date.nunique()
+    item_rcv = df_filtered[df_filtered["Rcv So Flag"]=="Rcv(increase)"]["Item Code"].nunique()
+    item_so = df_filtered[df_filtered["Rcv So Flag"]=="So(decrese)"]["Item Code"].nunique()
+    amount_rcv = df_filtered[df_filtered["Rcv So Flag"]=="Rcv(increase)"]["Quantity[Unit1]"].sum()
+    amount_so = df_filtered[df_filtered["Rcv So Flag"]=="So(decrese)"]["Quantity[Unit1]"].sum()
+
+    # --- Display compact info cards in one row at bottom ---
+    st.markdown("### 📦 Inventory Information")
+    cols = st.columns(9)
+    with cols[0]: st.metric("Total Items", total_item_codes)
+    with cols[1]: st.metric("Movement", movement_items)
+    with cols[2]: st.metric("Non-Movement", non_movement_items)
+    with cols[3]: st.metric("New Items", new_item_codes)
+    with cols[4]: st.metric("Days with Rcv", day_rcv)
+    with cols[5]: st.metric("Days with So", day_so)
+    with cols[6]: st.metric("Item Codes Rcv", item_rcv)
+    with cols[7]: st.metric("Item Codes So", item_so)
+    with cols[8]: st.metric("Amount Rcv/So", f"{amount_rcv:.0f}/{amount_so:.0f}")
