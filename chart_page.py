@@ -74,6 +74,7 @@ def render_chart_page():
     df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
+
     # ==========================================================
     # 📌 INFO BOX SECTION
     # ==========================================================
@@ -82,8 +83,11 @@ def render_chart_page():
     total_item_codes = df_raw["Item Code"].nunique()
 
     # 2. Movement and non-movement item_code of all data
-    movement_items = df_raw[df_raw["Quantity[Unit1]"] != 0]["Item Code"].nunique()
+    # Movement = appears at least once in Rcv or So during 12 months
+    active_items = df_raw[df_raw["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]["Item Code"].unique()
+    movement_items = len(active_items)
     non_movement_items = total_item_codes - movement_items
+    
 
     # 3. New item_code of selection period (not seen before this year/month)
     if selected_year != "ALL":
