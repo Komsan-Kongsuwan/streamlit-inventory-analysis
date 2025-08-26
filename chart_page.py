@@ -83,12 +83,21 @@ def render_chart_page():
     total_item_codes = df_raw["Item Code"].nunique()
 
     # 2. Movement and non-movement item_code of all data
-    # Movement = appears at least once in Rcv or So during 12 months
-    active_items = df_raw[df_raw["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]["Item Code"].unique()
+    # --- Determine latest 12 months ---
+    df_raw['YearMonth'] = df_raw['Year']*100 + df_raw['Month']  # e.g., 202508
+    latest_yearmonth = df_raw['YearMonth'].max()
+    # Get the 12 latest months
+    last_12_months = df_raw['YearMonth'].sort_values().unique()[-12:]
+    df_last12 = df_raw[df_raw['YearMonth'].isin(last_12_months)]
+    
+    # Movement = appears at least once in Rcv or So during latest 12 months
+    active_items = df_last12[df_last12["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]["Item Code"].unique()
     movement_items = len(active_items)
+    
+    # Non-movement = total items in dataset minus active items in last 12 months
+    total_item_codes = df_raw["Item Code"].nunique()
     non_movement_items = total_item_codes - movement_items
     
-
     # 3. New item_code of selection period (not seen before this year/month)
     if selected_year != "ALL":
         prev_data = df_raw[df_raw["Year"] < selected_year]
