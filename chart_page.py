@@ -20,7 +20,7 @@ def render_chart_page():
     # --- Page CSS ---
     st.markdown("""
         <style>
-            .block-container {padding: 1rem 1rem 0 1rem;}
+            .block-container {padding: 1.5rem 1rem 0 1rem;}
             section[data-testid="stSidebar"] div.stButton > button {
                 font-size: 12px !important; padding: 0.1rem 0.25rem !important;
                 min-height: 40px !important; border-radius: 6px !important; line-height:1.2;
@@ -34,7 +34,7 @@ def render_chart_page():
     """, unsafe_allow_html=True)
 
     # --- Page Title ---
-    st.markdown("<h2 style='text-align:left; font-size:28px;'>📊 Receive-Ship Visualization (3)</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align:left; font-size:28px;'>📊 Receive-Ship Visualization (4)</h2>", unsafe_allow_html=True)
 
     if "official_data" not in st.session_state:
         st.warning("⚠️ No data found. Please upload files in the Data Loader page first.")
