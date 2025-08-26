@@ -33,7 +33,7 @@ def render_chart_page():
 
 
     st.markdown(
-        "<h2 style='text-align: left; font-size:28px;'>📊 Receive-Ship Visualization</h2>", 
+        "<h2 style='text-align: left; font-size:28px;'>📊 Receive-Ship Visualization (2)</h2>", 
         unsafe_allow_html=True
     )
 
