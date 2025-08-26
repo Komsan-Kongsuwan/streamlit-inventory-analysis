@@ -20,7 +20,7 @@ def render_chart_page():
     # --- Page CSS ---
     st.markdown("""
         <style>
-            .block-container {padding: 1rem 1rem 0 1rem;}
+            .block-container {padding: 1.5rem 1rem 0 1rem;}
             section[data-testid="stSidebar"] div.stButton > button {
                 font-size: 12px !important; padding: 0.1rem 0.25rem !important;
                 min-height: 40px !important; border-radius: 6px !important; line-height:1.2;
@@ -33,7 +33,7 @@ def render_chart_page():
 
 
     st.markdown(
-        "<h2 style='text-align: left; font-size:28px;'>📊 Inventory Visualization</h2>", 
+        "<h2 style='text-align: left; font-size:28px;'>📊 Receive-Ship Visualization</h2>", 
         unsafe_allow_html=True
     )
 
@@ -151,11 +151,11 @@ def render_chart_page():
     # --- Display compact info cards in one row at bottom ---
     cols = st.columns(9)
     with cols[0]: st.metric("Total Items", total_item_codes)
-    with cols[1]: st.metric("Movemen Items", movement_items)
-    with cols[2]: st.metric("Non-Movement Items", non_movement_items)
+    with cols[1]: st.metric("Movement Items", movement_items)
+    with cols[2]: st.metric("Non-Movement", non_movement_items)
     with cols[3]: st.metric("New Items", new_item_codes)
-    with cols[4]: st.metric("Day Receive", day_rcv)
-    with cols[5]: st.metric("Day Ship", day_so)
-    with cols[6]: st.metric("Receive Item", item_rcv)
-    with cols[7]: st.metric("Ship Item", item_so)
+    with cols[4]: st.metric("Receive (Day)", day_rcv)
+    with cols[5]: st.metric("Ship (Day)", day_so)
+    with cols[6]: st.metric("Receive (Item)", item_rcv)
+    with cols[7]: st.metric("Ship (Item)", item_so)
     with cols[8]: st.metric("QTY Receive/Ship", f"{amount_rcv:.0f}/{amount_so:.0f}")
