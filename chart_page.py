@@ -20,23 +20,17 @@ def render_chart_page():
     # --- Page CSS ---
     st.markdown("""
         <style>
-            .block-container {padding: 1.5rem 1rem 0 1rem;}
+            .block-container {padding: 1rem 1rem 0 1rem;}
             section[data-testid="stSidebar"] div.stButton > button {
                 font-size: 12px !important; padding: 0.1rem 0.25rem !important;
                 min-height: 40px !important; border-radius: 6px !important; line-height:1.2;
             }
             section[data-testid="stSidebar"] div.stButton p { font-size: 12px !important; margin:0 !important; }
-            .stMetric > div { font-size: 0.8rem; padding: 0.2rem 0.5rem !important; line-height:1.0 !important; }
-            .stMetric label { font-size: 0.7rem !important; }
         </style>
     """, unsafe_allow_html=True)
 
-
-    st.markdown(
-        "<h2 style='text-align: left; font-size:28px;'>📊 Receive-Ship Visualization</h2>", 
-        unsafe_allow_html=True
-    )
-
+    # --- Page title ---
+    st.markdown("<h2 style='text-align: left; font-size:28px;'>📊 Inventory Visualization</h2>", unsafe_allow_html=True)
 
     if "official_data" not in st.session_state:
         st.warning("⚠️ No data found. Please upload files in the Data Loader page first.")
@@ -44,11 +38,10 @@ def render_chart_page():
 
     df_raw = st.session_state["official_data"].copy()
 
-    # --- Sidebar: Year filter ---
+    # --- Sidebar filters ---
     years_list = sorted(df_raw["Year"].dropna().unique())
     selected_year = st.sidebar.selectbox("Select Year", ["ALL"] + list(years_list), index=0)
 
-    # --- Sidebar: Month filter ---
     months = list(range(1, 13))
     selected_month = st.sidebar.radio(
         "Select Month (optional)",
@@ -57,7 +50,6 @@ def render_chart_page():
     )
     selected_month_num = list(calendar.month_abbr).index(selected_month) if selected_month != "All" else None
 
-    # --- Main page: Item filter ---
     items = st.multiselect("Item Code", df_raw["Item Code"].unique())
 
     # --- Apply filters ---
@@ -76,9 +68,7 @@ def render_chart_page():
     df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
     df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
 
-    # ==========================================================
-    # 📊 CHART
-    # ==========================================================
+    # --- CHART ---
     if selected_month_num:
         df_filtered["Day"] = pd.to_datetime(df_filtered["Operation Date"]).dt.day
         total_days = pd.Series(range(1,32))
@@ -98,27 +88,34 @@ def render_chart_page():
         chart_df["x_label"] = chart_df["Year"].astype(str)
         chart_title = "📊 Inventory by Year"
 
-    fig_bar = px.bar(
-        chart_df, 
-        x="x_label", 
-        y="Quantity[Unit1]", 
-        color="Rcv So Flag",
-        barmode="group", 
-        title=chart_title,
-        height=400   # 👈 set height here
-    )
-    
+    fig_bar = px.bar(chart_df, x="x_label", y="Quantity[Unit1]", color="Rcv So Flag",
+                     barmode="group", title=chart_title)
     fig_bar.update_layout(
         xaxis_title="",
         yaxis_title="Quantity",
         template="plotly_white",
         legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
     )
-    st.plotly_chart(fig_bar, use_container_width=True)
+    st.plotly_chart(fig_bar, use_container_width=True, height=500)
 
-    # ==========================================================
-    # 📌 INFO BOXES (MOVED TO BOTTOM)
-    # ==========================================================
+    # --- Compact Info Cards CSS ---
+    st.markdown(
+        """
+        <style>
+        /* Reduce space inside metric card */
+        [data-testid="stMetric"] {
+            padding: 0.25rem 0.5rem; min-height: 60px;
+        }
+        [data-testid="stMetricLabel"] { font-size: 14px !important; font-weight: 600 !important; color: #333333; }
+        [data-testid="stMetricValue"] { font-size: 20px !important; font-weight: 700 !important; color: #0055aa; }
+        /* Reduce vertical gap between chart and metrics */
+        div.block-container div[data-testid="stVerticalBlock"] { margin-top:0rem; margin-bottom:0rem; }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # --- INFO CARDS AT BOTTOM ---
     df_raw['YearMonth'] = df_raw['Year']*100 + df_raw['Month']
     last_12_months = sorted(df_raw['YearMonth'].unique())[-12:]
     df_last12 = df_raw[df_raw['YearMonth'].isin(last_12_months)]
@@ -127,7 +124,6 @@ def render_chart_page():
     movement_items = len(active_items)
     non_movement_items = total_item_codes - movement_items
 
-    # New items in selected period
     if selected_year != "ALL":
         prev_data = df_raw[df_raw["Year"] < selected_year]
         if selected_month_num:
@@ -140,7 +136,6 @@ def render_chart_page():
     else:
         new_item_codes = 0
 
-    # Days and item codes by Rcv/So
     day_rcv = df_filtered[df_filtered["Rcv So Flag"]=="Rcv(increase)"]["Operation Date"].dt.date.nunique()
     day_so = df_filtered[df_filtered["Rcv So Flag"]=="So(decrese)"]["Operation Date"].dt.date.nunique()
     item_rcv = df_filtered[df_filtered["Rcv So Flag"]=="Rcv(increase)"]["Item Code"].nunique()
@@ -148,63 +143,14 @@ def render_chart_page():
     amount_rcv = df_filtered[df_filtered["Rcv So Flag"]=="Rcv(increase)"]["Quantity[Unit1]"].sum()
     amount_so = df_filtered[df_filtered["Rcv So Flag"]=="So(decrese)"]["Quantity[Unit1]"].sum()
 
-
-    # Reduce vertical gap between chart and metrics
-    st.markdown(
-        """
-        <style>
-        div.block-container div[data-testid="stVerticalBlock"] {
-            margin-top: 0rem;
-            margin-bottom: 0rem;
-        }
-        [data-testid="stMetric"] {
-            margin-top: 0rem !important;
-            margin-bottom: 0rem !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    
-    
-    # Custom CSS for st.metric
-    st.markdown(
-        """
-        <style>
-        /* Reduce space inside metric card */
-        [data-testid="stMetric"] {
-            padding: 0.25rem 0.5rem;   /* reduce padding */
-            min-height: 60px;          /* lower the height */
-        }
-    
-        /* Change label style */
-        [data-testid="stMetricLabel"] {
-            font-size: 14px !important;
-            font-weight: 600 !important;
-            color: #333333;
-        }
-    
-        /* Change value style */
-        [data-testid="stMetricValue"] {
-            font-size: 20px !important;
-            font-weight: 700 !important;
-            color: #0055aa;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    
-    # --- Display compact info cards in one row at bottom ---
+    st.markdown("### 📦 Inventory Information")
     cols = st.columns(9)
     with cols[0]: st.metric("Total Items", total_item_codes)
-    with cols[1]: st.metric("Movement Items", movement_items)
+    with cols[1]: st.metric("Movement", movement_items)
     with cols[2]: st.metric("Non-Movement", non_movement_items)
     with cols[3]: st.metric("New Items", new_item_codes)
-    with cols[4]: st.metric("Receive (Day)", day_rcv)
-    with cols[5]: st.metric("Ship (Day)", day_so)
-    with cols[6]: st.metric("Receive (Item)", item_rcv)
-    with cols[7]: st.metric("Ship (Item)", item_so)
-    with cols[8]: st.metric("QTY Receive/Ship", f"{amount_rcv:.0f}/{amount_so:.0f}")
+    with cols[4]: st.metric("Days with Rcv", day_rcv)
+    with cols[5]: st.metric("Days with So", day_so)
+    with cols[6]: st.metric("Item Codes Rcv", item_rcv)
+    with cols[7]: st.metric("Item Codes So", item_so)
+    with cols[8]: st.metric("Amount Rcv/So", f"{amount_rcv:.0f}/{amount_so:.0f}")
