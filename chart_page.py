@@ -1,185 +1,156 @@
+# chart_page.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import calendar
 
-def day_suffix(d):
-    """Return day with suffix like 1st, 2nd, 3rd, 4th ..."""
-    if 11 <= d <= 13:
-        return f"{d}th"
-    last_digit = d % 10
-    if last_digit == 1:
-        return f"{d}st"
-    elif last_digit == 2:
-        return f"{d}nd"
-    elif last_digit == 3:
-        return f"{d}rd"
-    else:
-        return f"{d}th"
+def render_chart_page(df_raw: pd.DataFrame):
+    st.title("📊 Inventory Movement Analysis")
 
-def render_chart_page():
-    # --- Reduce top and side margins/paddings of the page ---
-    st.markdown("""
-        <style>
-            .block-container {
-                padding-top: 1.5rem;
-                padding-left: 1rem;
-                padding-right: 1rem;
-                padding-bottom: 0rem;
-            }
-        </style>
-    """, unsafe_allow_html=True)
+    # --- Sidebar filters ---
+    st.sidebar.header("🔎 Filters")
+    years = ["ALL"] + sorted(df_raw["Year"].unique().tolist())
+    months = ["ALL"] + list(calendar.month_abbr[1:])
+    categories = ["ALL", "Rcv increase + So decrease", "Rcv increase", "So decrease"]
 
-    st.title("📊 Inventory Flow by Operation Date")
-
-    if "official_data" not in st.session_state:
-        st.warning("⚠️ No data found. Please upload files in the Data Loader page first.")
-        return
-
-    df_raw = st.session_state["official_data"].copy()
-
-    # --- Sidebar: Year filter ---
-    years_list = sorted(df_raw["Year"].dropna().unique())
-    selected_year = st.sidebar.selectbox("Select Year", ["ALL"] + list(years_list), index=0)
-
-    # --- Sidebar: Month filter ---
-    months = list(range(1, 13))
-    selected_month = st.sidebar.radio(
-        "Select Month (optional)",
-        ["All"] + [calendar.month_abbr[m] for m in months],
-        index=0
-    )
-    if selected_month != "All":
-        selected_month_num = list(calendar.month_abbr).index(selected_month)
-    else:
-        selected_month_num = None
-
-    # --- Main page: Item filter ---
-    items = st.multiselect("Item Code", df_raw["Item Code"].unique())
+    selected_year = st.sidebar.selectbox("Select Year", years)
+    selected_month = st.sidebar.selectbox("Select Month", months)
+    selected_category = st.sidebar.selectbox("Select Category", categories)
 
     # --- Apply filters ---
     df_filtered = df_raw.copy()
+
     if selected_year != "ALL":
         df_filtered = df_filtered[df_filtered["Year"] == selected_year]
-    if selected_month_num:
-        df_filtered = df_filtered[df_filtered["Month"] == selected_month_num]
-    if items:
-        df_filtered = df_filtered[df_filtered["Item Code"].isin(items)]
 
-    if df_filtered.empty:
-        st.warning("⚠️ No data after filtering.")
-        return
+    if selected_month != "ALL":
+        month_num = list(calendar.month_abbr).index(selected_month)
+        df_filtered = df_filtered[df_filtered["Month"] == month_num]
 
-    # --- Keep relevant categories and absolute value ---
-    df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
-    df_filtered['Quantity[Unit1]'] = df_filtered['Quantity[Unit1]'].abs()
+    if selected_category != "ALL":
+        if selected_category == "Rcv increase + So decrease":
+            df_filtered = df_filtered[df_filtered["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
+        elif selected_category == "Rcv increase":
+            df_filtered = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]
+        elif selected_category == "So decrease":
+            df_filtered = df_filtered[df_filtered["Rcv So Flag"] == "So(decrese)"]
 
-    # ==========================================================
-    # 📌 INFO BOX SECTION
-    # ==========================================================
+    # --- Fill missing months/days ---
+    if selected_month == "ALL":
+        # group by month
+        all_months = pd.DataFrame({"Month": range(1, 13)})
+        chart_df = (
+            df_filtered.groupby(["Year", "Month", "Rcv So Flag"])["Quantity[Unit1]"]
+            .sum()
+            .reset_index()
+        )
+        chart_df = (
+            all_months.merge(chart_df, on="Month", how="left")
+            .fillna(0)
+        )
+        chart_df["Month Name"] = chart_df["Month"].apply(lambda x: calendar.month_abbr[x])
+    else:
+        # group by day of month
+        if not df_filtered.empty:
+            max_day = df_filtered["Day"].max()
+        else:
+            max_day = 31
+        all_days = pd.DataFrame({"Day": range(1, max_day + 1)})
+        chart_df = (
+            df_filtered.groupby(["Year", "Month", "Day", "Rcv So Flag"])["Quantity[Unit1]"]
+            .sum()
+            .reset_index()
+        )
+        chart_df = all_days.merge(chart_df, on="Day", how="left").fillna(0)
+
+    # --- Summary Information ---
+    st.subheader("ℹ️ Inventory Summary")
 
     # 1. Total item_code of all data
-    total_item_codes = df_raw["Item Code"].nunique()
+    total_items = df_raw["Item Code"].nunique()
 
-    # 2. Movement and non-movement item_code of all data
-    movement_items = df_raw[df_raw["Quantity[Unit1]"] != 0]["Item Code"].nunique()
-    non_movement_items = total_item_codes - movement_items
-
-    # 3. New item_code of selection period (not seen before this year/month)
+    # 2. Movement vs Non-movement (12 months check based on selected year)
     if selected_year != "ALL":
-        prev_data = df_raw[df_raw["Year"] < selected_year]
-        if selected_month_num:
-            prev_data = pd.concat([
-                prev_data,
-                df_raw[(df_raw["Year"] == selected_year) & (df_raw["Month"] < selected_month_num)]
-            ])
-        prev_items = set(prev_data["Item Code"].unique())
-        new_items = set(df_filtered["Item Code"].unique()) - prev_items
-        new_item_codes = len(new_items)
+        year_data = df_raw[df_raw["Year"] == selected_year].copy()
+        # Keep only rcv and so
+        year_data = year_data[year_data["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]
+        moved_items = year_data["Item Code"].unique()
+        movement_count = len(moved_items)
+        non_movement_count = total_items - movement_count
     else:
-        new_item_codes = 0
+        movement_count = df_raw[df_raw["Rcv So Flag"].isin(["Rcv(increase)", "So(decrese)"])]["Item Code"].nunique()
+        non_movement_count = total_items - movement_count
 
-    # 4. Day rcv and so of selection period
-    day_rcv = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]["Day"].nunique() if "Day" in df_filtered else 0
-    day_so = df_filtered[df_filtered["Rcv So Flag"] == "So(decrese)"]["Day"].nunique() if "Day" in df_filtered else 0
+    # 3. New item_code in selection period
+    new_items = df_filtered["Item Code"].nunique()
 
-    # 5. Item_code rcv and so of selection period
-    item_rcv = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]["Item Code"].nunique()
-    item_so = df_filtered[df_filtered["Rcv So Flag"] == "So(decrese)"]["Item Code"].nunique()
+    # 4. Distinct days with Rcv and So in selection period
+    days_rcv = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]["Operation Date"].nunique()
+    days_so = df_filtered[df_filtered["Rcv So Flag"] == "So(decrese)"]["Operation Date"].nunique()
 
-    # 6. Amount rcv and so of selection period
+    # 5. Distinct item_code with Rcv and So in selection period
+    items_rcv = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]["Item Code"].nunique()
+    items_so = df_filtered[df_filtered["Rcv So Flag"] == "So(decrese)"]["Item Code"].nunique()
+
+    # 6. Amount of Rcv and So in selection period
     amount_rcv = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]["Quantity[Unit1]"].sum()
     amount_so = df_filtered[df_filtered["Rcv So Flag"] == "So(decrese)"]["Quantity[Unit1]"].sum()
 
-    # --- Display info cards ---
-    st.subheader("📦 Inventory Information")
+    # --- Display Info Boxes ---
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Total Item Codes", total_item_codes)
-        st.metric("Movement Items", movement_items)
-        st.metric("Non-Movement Items", non_movement_items)
+        st.info(f"**Total Item Codes:** {total_items}")
+        st.info(f"**Movement Items:** {movement_count}")
+        st.info(f"**Non-Movement Items:** {non_movement_count}")
     with col2:
-        st.metric("New Items (period)", new_item_codes)
-        st.metric("Days with Rcv", day_rcv)
-        st.metric("Days with So", day_so)
+        st.info(f"**New Items (Selected Period):** {new_items}")
+        st.info(f"**Days with Rcv:** {days_rcv}")
+        st.info(f"**Days with So:** {days_so}")
     with col3:
-        st.metric("Item Codes Rcv", item_rcv)
-        st.metric("Item Codes So", item_so)
-        st.metric("Amount Rcv / So", f"{amount_rcv:.0f} / {amount_so:.0f}")
+        st.info(f"**Item Codes with Rcv:** {items_rcv}")
+        st.info(f"**Item Codes with So:** {items_so}")
+        st.info(f"**Rcv Amount:** {amount_rcv:,.0f}")
+        st.info(f"**So Amount:** {amount_so:,.0f}")
 
-    st.markdown("---")
+    # --- Visualization ---
+    st.subheader("📈 Bar Chart")
 
-    # ==========================================================
-    # 📊 CHART SECTION
-    # ==========================================================
-    if selected_month_num:
-        # Daily aggregation
-        if "Day" not in df_filtered.columns and "Operation Date" in df_filtered.columns:
-            df_filtered["Day"] = pd.to_datetime(df_filtered["Operation Date"]).dt.day
-        elif "Day" not in df_filtered.columns:
-            df_filtered["Day"] = 1
-
-        total_days = pd.Series(range(1, 32))  # assume max 31
-        chart_df = df_filtered.groupby(["Day", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        all_days_flags = pd.MultiIndex.from_product([total_days, chart_df["Rcv So Flag"].unique()], names=["Day", "Rcv So Flag"])
-        chart_df = chart_df.set_index(["Day", "Rcv So Flag"]).reindex(all_days_flags, fill_value=0).reset_index()
-        chart_df["x_label"] = chart_df["Day"].apply(day_suffix)
-        chart_title = f"📊 Daily Inventory in {selected_year}-{calendar.month_abbr[selected_month_num]}"
-
-    elif selected_year != "ALL":
-        # Monthly aggregation
-        chart_df = df_filtered.groupby(["Month", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        all_months_flags = pd.MultiIndex.from_product([months, chart_df["Rcv So Flag"].unique()], names=["Month", "Rcv So Flag"])
-        chart_df = chart_df.set_index(["Month", "Rcv So Flag"]).reindex(all_months_flags, fill_value=0).reset_index()
-        chart_df["x_label"] = chart_df["Month"].apply(lambda m: calendar.month_abbr[m])
-        chart_title = f"📊 Monthly Inventory in {selected_year}"
-
-    else:
-        # Yearly aggregation
-        chart_df = df_filtered.groupby(["Year", "Rcv So Flag"], as_index=False)["Quantity[Unit1]"].sum()
-        chart_df["x_label"] = chart_df["Year"].astype(str)
-        chart_title = "📊 Inventory by Year"
-
-    # --- Bar chart ---
-    fig_bar = px.bar(
-        chart_df,
-        x="x_label",
-        y="Quantity[Unit1]",
-        color="Rcv So Flag",
-        barmode="group",
-        title=chart_title
-    )
-    fig_bar.update_layout(
-        xaxis_title="",
-        yaxis_title="Quantity",
-        template="plotly_white",
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=-0.3,
-            xanchor="center",
-            x=0.5
+    if selected_month == "ALL":
+        fig_bar = px.bar(
+            chart_df,
+            x="Month Name",
+            y="Quantity[Unit1]",
+            color="Rcv So Flag",
+            barmode="stack",
+            title="Monthly Rcv vs So"
         )
-    )
-
+    else:
+        fig_bar = px.bar(
+            chart_df,
+            x="Day",
+            y="Quantity[Unit1]",
+            color="Rcv So Flag",
+            barmode="stack",
+            title="Daily Rcv vs So"
+        )
     st.plotly_chart(fig_bar, use_container_width=True)
+
+    # --- Table View ---
+    st.subheader("📋 Data Table")
+    if selected_month == "ALL":
+        table = chart_df.pivot_table(
+            index="Rcv So Flag",
+            columns="Month Name",
+            values="Quantity[Unit1]",
+            aggfunc="sum",
+            fill_value=0
+        )
+    else:
+        table = chart_df.pivot_table(
+            index="Rcv So Flag",
+            columns="Day",
+            values="Quantity[Unit1]",
+            aggfunc="sum",
+            fill_value=0
+        )
+    st.dataframe(table)
