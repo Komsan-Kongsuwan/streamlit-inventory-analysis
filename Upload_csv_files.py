@@ -97,6 +97,6 @@ def render_data_loader():
     st.session_state["official_data"] = df_raw
 
     st.subheader("📊 Preview of Uploaded Data")
-    st.dataframe(df_raw.head(20))
+    st.dataframe(df_pivot)
     
 render_data_loader()
