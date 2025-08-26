@@ -33,7 +33,7 @@ def render_chart_page():
 
 
     st.markdown(
-        "<h2 style='text-align: center; font-size:28px;'>📊 Inventory Visualization</h2>", 
+        "<h2 style='text-align: left; font-size:28px;'>📊 Inventory Visualization</h2>", 
         unsafe_allow_html=True
     )
 
@@ -106,7 +106,7 @@ def render_chart_page():
         template="plotly_white",
         legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
     )
-    st.plotly_chart(fig_bar, use_container_width=True, height=450)
+    st.plotly_chart(fig_bar, use_container_width=True, height=350)
 
     # ==========================================================
     # 📌 INFO BOXES (MOVED TO BOTTOM)
