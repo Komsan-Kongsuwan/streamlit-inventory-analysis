@@ -98,15 +98,23 @@ def render_chart_page():
         chart_df["x_label"] = chart_df["Year"].astype(str)
         chart_title = "📊 Inventory by Year"
 
-    fig_bar = px.bar(chart_df, x="x_label", y="Quantity[Unit1]", color="Rcv So Flag",
-                     barmode="group", title=chart_title)
+    fig_bar = px.bar(
+        chart_df, 
+        x="x_label", 
+        y="Quantity[Unit1]", 
+        color="Rcv So Flag",
+        barmode="group", 
+        title=chart_title,
+        height=400   # 👈 set height here
+    )
+    
     fig_bar.update_layout(
         xaxis_title="",
         yaxis_title="Quantity",
         template="plotly_white",
         legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5)
     )
-    st.plotly_chart(fig_bar, use_container_width=True, height=150)
+    st.plotly_chart(fig_bar, use_container_width=True)
 
     # ==========================================================
     # 📌 INFO BOXES (MOVED TO BOTTOM)
