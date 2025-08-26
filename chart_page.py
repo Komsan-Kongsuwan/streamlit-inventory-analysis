@@ -105,7 +105,7 @@ def render_chart_page():
         color="Rcv So Flag",
         barmode="group", 
         title=chart_title,
-        height=400   # 👈 set height here
+        height=100   # 👈 set height here
     )
     
     fig_bar.update_layout(
