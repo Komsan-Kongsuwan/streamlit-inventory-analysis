@@ -28,13 +28,13 @@ def render_chart_page():
             section[data-testid="stSidebar"] div.stButton p { font-size: 12px !important; margin:0 !important; }
             [data-testid="stMetric"] { padding: 0.25rem 0.5rem; min-height: 60px; margin:0 !important;}
             [data-testid="stMetricLabel"] { font-size: 14px !important; font-weight: 600 !important; color: #333333; }
-            [data-testid="stMetricValue"] { font-size: 20px !important; font-weight: 700 !important; color: #0055aa; }
+            [data-testid="stMetricValue"] { font-size: 16px !important; font-weight: 700 !important; color: #0055aa; }
             div.block-container > div {margin-bottom: 0rem !important;}
         </style>
     """, unsafe_allow_html=True)
 
     # --- Page Title ---
-    st.markdown("<h2 style='text-align:left; font-size:28px;'>📊 Receive-Ship Visualization (5)</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align:left; font-size:28px;'>📊 Receive-Ship Visualization (6)</h2>", unsafe_allow_html=True)
 
     if "official_data" not in st.session_state:
         st.warning("⚠️ No data found. Please upload files in the Data Loader page first.")
