@@ -113,8 +113,8 @@ def render_chart_page():
         new_item_codes = 0
 
     # 4. Day rcv and so of selection period
-    day_rcv = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]["Day"].nunique() if "Day" in df_filtered else 0
-    day_so = df_filtered[df_filtered["Rcv So Flag"] == "So(decrese)"]["Day"].nunique() if "Day" in df_filtered else 0
+    day_rcv = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]["Operation Date"].dt.date.nunique()
+    day_so  = df_filtered[df_filtered["Rcv So Flag"] == "So(decrese)"]["Operation Date"].dt.date.nunique()
 
     # 5. Item_code rcv and so of selection period
     item_rcv = df_filtered[df_filtered["Rcv So Flag"] == "Rcv(increase)"]["Item Code"].nunique()
