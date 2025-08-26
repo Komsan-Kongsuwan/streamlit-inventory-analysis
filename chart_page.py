@@ -147,25 +147,6 @@ def render_chart_page():
     item_so = df_filtered[df_filtered["Rcv So Flag"]=="So(decrese)"]["Item Code"].nunique()
     amount_rcv = df_filtered[df_filtered["Rcv So Flag"]=="Rcv(increase)"]["Quantity[Unit1]"].sum()
     amount_so = df_filtered[df_filtered["Rcv So Flag"]=="So(decrese)"]["Quantity[Unit1]"].sum()
-
-
-    # Reduce vertical gap between chart and metrics
-    st.markdown(
-        """
-        <style>
-        div.block-container div[data-testid="stVerticalBlock"] {
-            margin-top: 0rem;
-            margin-bottom: 0rem;
-        }
-        [data-testid="stMetric"] {
-            margin-top: 0rem !important;
-            margin-bottom: 0rem !important;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
     
     
     # Custom CSS for st.metric
@@ -196,6 +177,24 @@ def render_chart_page():
         unsafe_allow_html=True
     )
 
+    
+    # Reduce vertical gap between chart and metrics
+    st.markdown(
+        """
+        <style>
+        div.block-container div[data-testid="stVerticalBlock"] {
+            margin-top: 0rem;
+            margin-bottom: 0rem;
+        }
+        [data-testid="stMetric"] {
+            margin-top: 0rem !important;
+            margin-bottom: 0rem !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
     
     # --- Display compact info cards in one row at bottom ---
     cols = st.columns(9)
